@@ -25,12 +25,24 @@ import AVFoundation
 
 public class RCCameraViewController: UIViewController, UIImagePickerControllerDelegate {
   
-  //MARK: Properties
+  //MARK: Public properties
   public weak var delegate: RCCameraViewControllerDelegate?
+  public var cancelButtonTitle = "Cancel"
+  //Private properties
   private var captureSession = AVCaptureSession()
   private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
   private var maskLayer = CAShapeLayer()
   private var circleLayer = CAShapeLayer()
+  private lazy var cameraView: UIView = {
+    let cameraView = UIView()
+    cameraView.backgroundColor = .black
+    self.view.addSubview(cameraView)
+    cameraView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 0).isActive = true
+    cameraView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: 0).isActive = true
+    cameraView.topAnchor.constraint(equalTo: self.view.topAnchor, constant: 0).isActive = true
+    cameraView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: 0).isActive = true
+    return cameraView
+  }()
   
   //MARK: Inits
   public required init?(coder: NSCoder) {
@@ -60,8 +72,9 @@ extension RCCameraViewController {
     configureMaskLayer()
     configureVideoStream()
     configureVideoPreview()
-    view.layer.addSublayer(maskLayer)
-    view.layer.addSublayer(circleLayer)
+    cameraView.layer.addSublayer(maskLayer)
+    cameraView.layer.addSublayer(circleLayer)
+    configureCancelButton()
   }
   
   public override func viewWillAppear(_ animated: Bool) {
@@ -83,6 +96,35 @@ extension RCCameraViewController {
 
 //MARK: Private methods
 extension RCCameraViewController {
+  
+  func configureCancelButton() {
+    let topView = UIView()
+    let topContainerView = UIView()
+    view.addSubview(topView)
+    topView.addSubview(topContainerView)
+    [topView, topContainerView].forEach { view in
+      view.translatesAutoresizingMaskIntoConstraints = false
+      view.backgroundColor = .clear
+      view.leadingAnchor.constraint(equalTo: view.superview!.leadingAnchor).isActive = true
+      view.trailingAnchor.constraint(equalTo: view.superview!.trailingAnchor).isActive = true
+    }
+    topView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
+    topContainerView.heightAnchor.constraint(equalToConstant: 40).isActive = true
+    topContainerView.topAnchor.constraint(equalTo: view.layoutMarginsGuide.topAnchor).isActive = true
+    topContainerView.bottomAnchor.constraint(equalTo: topView.bottomAnchor, constant: 0).isActive = true
+    let button = UIButton(type: .system)
+    button.setTitle(cancelButtonTitle, for: .normal)
+    button.addTarget(self, action: #selector(cancelPressed), for: .touchUpInside)
+    button.tintColor = .white
+    topContainerView.addSubview(button)
+    button.translatesAutoresizingMaskIntoConstraints = false
+    topContainerView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: 20).isActive = true
+    button.centerYAnchor.constraint(equalTo: topContainerView.centerYAnchor).isActive = true
+  }
+  
+  @objc func cancelPressed() {
+    delegate?.cameraViewControllerDidCancel(self)
+  }
   
   func configureMaskLayer() {
     let path = UIBezierPath(roundedRect: view.bounds, cornerRadius: 0)
@@ -130,6 +172,4 @@ extension RCCameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
   public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
     
   }
-  
-  
 }
