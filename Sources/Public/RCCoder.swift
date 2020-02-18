@@ -20,10 +20,31 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-import Foundation
+import UIKit
 
-class RCCoder {
+public final class RCCoder {
   
+  let configuration: RCCoderConfiguration
   
+  public init(configuration: RCCoderConfiguration = .defaultConfiguration) {
+    self.configuration = configuration
+  }
+}
+
+extension RCCoder {
+  public func encode(_ image: RCImage) throws -> UIImage {
+    return UIImage()
+    
+  }
   
+  public func decode(_ data: UIImage) throws -> String {
+    return ""
+  }
+}
+
+extension RCCoder {
+  enum RCCoderError: Error {
+    case errorDecoding
+    case errorEncoding
+  }
 }
