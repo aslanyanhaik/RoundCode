@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
   name: "RoundCode",
-  platforms: [.iOS(.v11)],
+  platforms: [.iOS(.v13)],
   products: [.library(name: "RoundCode",targets: ["RoundCode"])],
   targets: [
     .target(name: "RoundCode", dependencies: [], path: "Sources"),
