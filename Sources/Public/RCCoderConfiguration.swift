@@ -24,30 +24,43 @@ import Foundation
 
 public final class RCCoderConfiguration {
   
- public let symbols: String
- public let emptySymbol: String
-
-  public init(symbols: String, emptySymbol: Character) throws {
-    let symbolsSet = Set(symbols)
-    guard symbolsSet.count != symbols.count else {
-      throw RCCoderConfigurationError.containsDuplicateSymbols
+  public let symbols: [Character]
+  public let maxMessageCount: Int
+  internal let bitesPerSymbol: Int
+  
+  public init(symbols: String, maxMessageCount: Int) throws {
+    var hash = [Character : Int]()
+    for value in symbols.enumerated() {
+      if hash[value.element] != nil {
+        throw RCCoderConfigurationError.containsDuplicateSymbols
+      }
+      hash[value.element] = value.offset
     }
-    guard !symbols.contains(emptySymbol) else{
-      throw RCCoderConfigurationError.containsEmptySymbol
-    }
-    self.symbols = String(Array(symbolsSet))
-    self.emptySymbol = String(emptySymbol)
+    self.symbols = symbols.map({$0})
+    self.maxMessageCount = maxMessageCount
+    self.bitesPerSymbol = String(symbols.count, radix: 2).count
+  }
+  
+  public static var uuidConfiguration: RCCoderConfiguration {
+    return try! RCCoderConfiguration(symbols: "-abcdef0123456789", maxMessageCount: 36)
+  }
+  
+  public static var numericConfiguration: RCCoderConfiguration {
+    return try! RCCoderConfiguration(symbols: ".,_0123456789", maxMessageCount: 25)
   }
   
   public static var defaultConfiguration: RCCoderConfiguration {
-    return try! RCCoderConfiguration(symbols: " -abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", emptySymbol: "_")
+    return try! RCCoderConfiguration(symbols: " -abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", maxMessageCount: 32)
+  }
+  
+  public static var asciiConfiguration: RCCoderConfiguration {
+    return try! RCCoderConfiguration(symbols: ##"! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"##, maxMessageCount: 42)
   }
 }
 
-extension RCCoderConfiguration {
+public extension RCCoderConfiguration {
   
   enum RCCoderConfigurationError: Error {
-    case containsEmptySymbol
     case containsDuplicateSymbols
   }
 }
