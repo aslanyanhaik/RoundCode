@@ -24,27 +24,63 @@ import UIKit
 
 public final class RCCoder {
   
-  let configuration: RCCoderConfiguration
+  private let configuration: RCCoderConfiguration
   
   public init(configuration: RCCoderConfiguration = .defaultConfiguration) {
     self.configuration = configuration
   }
 }
 
-extension RCCoder {
-  public func encode(_ image: RCImage) throws -> UIImage {
+public extension RCCoder {
+  func encode(_ image: RCImage) throws -> UIImage {
+    let bits = try encode(message: image.message)
     return UIImage()
     
   }
   
-  public func decode(_ data: UIImage) throws -> String {
+  func decode(_ data: UIImage) throws -> String {
+    
     return ""
+  }
+  
+  func validate(_ text: String) -> Bool {
+    let characterset = CharacterSet(charactersIn: configuration.symbols.map({String($0)}).reduce("", +))
+    return text.trimmingCharacters(in: characterset).isEmpty && text.count <= configuration.maxMessageCount
   }
 }
 
 extension RCCoder {
-  enum RCCoderError: Error {
-    case errorDecoding
-    case errorEncoding
+  private func encode(message: String) throws -> [RCBit] {
+    guard validate(message) else { throw RCCoderError.inValidText }
+    var dataBytes = [Int](repeating: 0, count: configuration.maxMessageCount)
+    message.enumerated().forEach({dataBytes[$0.offset] = configuration.symbols.firstIndex(of: $0.element)! + 1})
+    return dataBytes.map { byte -> [RCBit] in
+      var stringValue = String(repeating: "0", count: configuration.bitesPerSymbol)
+      stringValue += String(byte, radix: 2)
+      return stringValue.suffix(configuration.bitesPerSymbol).compactMap({RCBit($0)})
+    }.flatMap({$0})
+  }
+  
+  private func decode(_ bits: [RCBit]) throws -> String {
+    let bitChunks = stride(from: 0, to: bits.count, by: configuration.bitesPerSymbol).map {
+      Array(bits[$0 ..< min($0 + configuration.bitesPerSymbol, bits.count)])
+    }
+    let indexes = bitChunks.map({ bits in
+      return bits.reduce(0) { accumulated, current in
+        accumulated << 1 | current.rawValue
+      }
+    }).filter({$0 != 0})
+    guard (indexes.max() ?? 0) <= configuration.symbols.count else {
+      throw RCCoderError.wrongConfiguration
+    }
+    return String(indexes.compactMap({configuration.symbols[$0 - 1]}))
+  }
+}
+
+
+public extension RCCoder {
+  enum RCCoderError: String, Error {
+    case inValidText
+    case wrongConfiguration
   }
 }
