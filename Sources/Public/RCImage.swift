@@ -25,17 +25,11 @@ import UIKit
 public class RCImage {
   
   public var message = ""
-  public var type = ImageType.png
-  public var size = CGSize(width: 300, height: 300)
-  public var tintColor = UIColor.purple
+  public var size = CGFloat(300)
+  public var tintColor = UIColor.systemBlue
   public var attachmentImage: UIImage?
   public var isTransparent = false
+  internal var bits = [[RCBit]]()
   
-}
-
-public extension RCImage {
-  enum ImageType {
-    case png
-    case jpg(quality: Double)
-  }
+  public init() {}
 }

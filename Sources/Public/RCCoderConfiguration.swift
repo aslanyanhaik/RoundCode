@@ -22,11 +22,14 @@
 
 import Foundation
 
-public final class RCCoderConfiguration {
+public struct RCCoderConfiguration {
   
   public let symbols: [Character]
   public let maxMessageCount: Int
   internal let bitesPerSymbol: Int
+  internal lazy var characterSet: CharacterSet = {
+    CharacterSet(charactersIn: symbols.map({String($0)}).reduce("", +))
+  }()
   
   public init(symbols: String, maxMessageCount: Int) throws {
     var hash = [Character : Int]()

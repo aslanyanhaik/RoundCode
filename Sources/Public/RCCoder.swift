@@ -24,7 +24,7 @@ import UIKit
 
 public final class RCCoder {
   
-  private let configuration: RCCoderConfiguration
+  private var configuration: RCCoderConfiguration
   
   public init(configuration: RCCoderConfiguration = .defaultConfiguration) {
     self.configuration = configuration
@@ -34,8 +34,9 @@ public final class RCCoder {
 public extension RCCoder {
   func encode(_ image: RCImage) throws -> UIImage {
     let bits = try encode(message: image.message)
-    return UIImage()
-    
+    image.bits = stride(from: 0, to: bits.count, by: bits.count / 4).map({Array(bits[$0 ..< min($0 + bits.count / 4, bits.count)])})
+    let drawer = RCDrawer(image: image)
+    return drawer.draw()
   }
   
   func decode(_ data: UIImage) throws -> String {
@@ -44,8 +45,7 @@ public extension RCCoder {
   }
   
   func validate(_ text: String) -> Bool {
-    let characterset = CharacterSet(charactersIn: configuration.symbols.map({String($0)}).reduce("", +))
-    return text.trimmingCharacters(in: characterset).isEmpty && text.count <= configuration.maxMessageCount
+    return text.trimmingCharacters(in: configuration.characterSet).isEmpty && text.count <= configuration.maxMessageCount
   }
 }
 
@@ -76,7 +76,6 @@ extension RCCoder {
     return String(indexes.compactMap({configuration.symbols[$0 - 1]}))
   }
 }
-
 
 public extension RCCoder {
   enum RCCoderError: String, Error {

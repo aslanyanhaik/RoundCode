@@ -22,22 +22,21 @@
 
 import Foundation
 
-enum RCBit: Int, CustomDebugStringConvertible {
+enum RCBit: Int {
   
   case zero
   case one
   
   init?(_ character: Character) {
     switch character {
-      case "0":
-        self = .zero
-      case "1":
-        self = .one
-      default:
-        return nil
+      case "0": self = .zero
+      case "1": self = .one
+      default: return nil
     }
   }
-  
+}
+
+extension RCBit: CustomDebugStringConvertible {
   var debugDescription: String {
     String(rawValue)
   }
