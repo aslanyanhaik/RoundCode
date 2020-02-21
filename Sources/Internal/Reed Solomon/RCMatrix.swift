@@ -20,77 +20,146 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-import Foundation
+import Accelerate
 
 final class RCMatrix {
   
   //MARK: Properties
   let rows: Int
-  let columns: Int
-  private var data = [[Float32]]()
+  var columns: Int {
+    data.count / rows
+  }
+  var data: [Float]
   
   //MARK: Inits
   init(size: Int) {
     self.rows = size
-    self.columns = size
-    for _ in 0..<size {
-      data.append(Array(repeating: 0, count: size))
-    }
+    data = [Float](repeating: 0, count: rows * rows)
   }
   
-  init(columns: Int, items: [Float32]) {
+  init(rows: Int, columns: Int) {
+    self.rows = rows
+    data = [Float](repeating: 0, count: rows * columns)
+  }
+  
+  init(columns: Int, items: [Float]) {
     guard items.count % columns == 0 else {
       fatalError("number of columns are not matching")
     }
-    self.columns = columns
     self.rows = items.count / columns
-    data = stride(from: 0, to: items.count, by: self.columns).map {
-      Array(items[$0 ..< min($0 + self.rows, items.count)])
+    self.data = items
+  }
+  
+  init(rows: Int, items: [Float]) {
+    guard items.count % rows == 0 else {
+      fatalError("number of rows are not matching")
     }
+    self.rows = rows
+    self.data = items
   }
 }
 
 //MARK: Public methods
 extension RCMatrix {
-  subscript(row: Int, column: Int) -> Float32 {
+  static func identity(size: Int) -> RCMatrix {
+    let matrix = RCMatrix(size: size)
+    (0..<size).forEach({matrix[$0, $0] = 1})
+    return matrix
+  }
+  
+  static func vandermonde(rows: Int, columns: Int) -> RCMatrix {
+    let matrix = RCMatrix(rows: rows, columns: columns)
+    return RCMatrix(rows: rows, columns: columns)
+  }
+  
+  subscript(row: Int, column: Int) -> Float {
     get {
-      guard (0...self.rows).contains(row), (0...self.columns).contains(column) else {
+      guard row <= self.rows, column <= self.columns else {
         fatalError("out of bounds")
       }
-      return data[row][column]
+      return data[self.rows * row + column]
     }
     set {
-     data[row][column] = newValue
+      data[self.rows * row + column] = newValue
     }
   }
   
-  func row(for index: Int) -> [Float32] {
-    return data[index]
+  func row(for index: Int) -> [Float] {
+    guard index <= self.rows else {
+      fatalError("out of bounds")
+    }
+    let range = (columns * index)..<(columns * (index + 1))
+    return Array(data[range])
   }
   
-  func column(for index: Int) -> [Float32] {
-    return data.compactMap({$0[index]})
+  func column(for index: Int) -> [Float] {
+    return stride(from: 0, to: data.count, by: self.columns).map { rowIndex in
+      data[index + rowIndex]
+    }
+  }
+  
+  func rowsData() -> [[Float]] {
+    return stride(from: 0, to: data.count, by: self.columns).map { index in
+      Array(data[index ..< min(index + self.columns, data.count)])
+    }
+  }
+  
+  func columnsData() -> [[Float]] {
+    return (0..<self.columns).map({column(for: $0)})
   }
   
   func swap(row firstRow: Int, with lastRow: Int) {
-    guard (0...self.rows).contains(firstRow) else {
-      fatalError("out of bounds")
-    }
-    data.swapAt(firstRow, lastRow)
+    var rowsData = self.rowsData()
+    rowsData.swapAt(firstRow, lastRow)
+    self.data = rowsData.flatMap({$0})
   }
   
-  static func identity(size: Int) -> RCMatrix {
-    let matrix = RCMatrix(size: size)
-    for index in 0..<size {
-      matrix[index, index] = 1
+  func multiply(by matrix: RCMatrix) -> RCMatrix {
+    guard self.columns == matrix.rows else {
+      fatalError("Cannot subract matrices of different dimensions")
     }
-    return matrix
+    var result = [Float](repeating: 0, count: self.rows * matrix.columns)
+    vDSP_mmul(self.data, 1, matrix.data, 1, &result, 1, UInt(self.rows), UInt(matrix.columns), UInt(self.columns))
+    return RCMatrix(rows: self.rows, items: result)
+  }
+  
+  func augment(by matrix: RCMatrix) -> RCMatrix {
+    guard self.rows == matrix.rows else {
+      fatalError("Matrices don't have the same number of rows")
+    }
+    let data = zip(self.rowsData(), matrix.rowsData()).map({$0.0 + $0.1}).flatMap({$0})
+    return RCMatrix(rows: self.rows, items: data)
+  }
+  
+  func inverted() -> RCMatrix {
+    guard rows == columns else {
+      fatalError("Only square matrices can be inverted")
+    }
+    var invertedData = data.map({Double($0)})
+    var size = __CLPK_integer(self.rows)
+    var pivots = [__CLPK_integer](repeating: 0, count: Int(size))
+    var workspace = [Double](repeating: 0.0, count: Int(size))
+    var error = __CLPK_integer(0)
+    withUnsafeMutablePointer(to: &size) {
+      dgetrf_($0, $0, &invertedData, $0, &pivots, &error)
+      dgetri_($0, &invertedData, $0, &pivots, &workspace, $0, &error)
+    }
+    guard error == 0 else {
+      fatalError("error inverting matrix: Error(\(error))")
+    }
+    return RCMatrix(rows: self.rows, items: invertedData.map({Float($0)}))
+  }
+  
+  func subMatrix(rowMin: Int, columnMin: Int, rowMax: Int, columnMax: Int) -> RCMatrix {
+    let data = rowsData()[rowMin...rowMax].map({$0[columnMin...columnMax]}).flatMap({$0})
+    return RCMatrix(rows: (rowMin...rowMax).count, items: data)
   }
 }
 
+//MARK: Equatable
 extension RCMatrix: Equatable {
   static func == (lhs: RCMatrix, rhs: RCMatrix) -> Bool {
-    return lhs.data.flatMap({$0}) == rhs.data.flatMap({$0})
+    return lhs.data == rhs.data
   }
 }
 
@@ -98,7 +167,7 @@ extension RCMatrix: Equatable {
 extension RCMatrix: CustomStringConvertible {
   var description: String {
     var message = "columns: \(columns), rows: \(rows)"
-    data.forEach({message += "\n \($0.description)"})
+    rowsData().forEach({message += "\n \($0.description)"})
     return message
   }
 }
