@@ -67,45 +67,51 @@ extension RCMatrix {
     return matrix
   }
   
-  static func vandermonde(rows: Int, columns: Int) -> RCMatrix {
-    let matrix = RCMatrix(rows: rows, columns: columns)
-    return RCMatrix(rows: rows, columns: columns)
-  }
-  
   subscript(row: Int, column: Int) -> Float {
     get {
-      guard row <= self.rows, column <= self.columns else {
-        fatalError("out of bounds")
+      return data.withUnsafeBufferPointer { buffer in
+        return buffer[self.rows * row + column]
       }
-      return data[self.rows * row + column]
     }
     set {
-      data[self.rows * row + column] = newValue
+      data.withUnsafeMutableBufferPointer { buffer in
+        buffer[self.rows * row + column] = newValue
+      }
     }
   }
   
   func row(for index: Int) -> [Float] {
-    guard index <= self.rows else {
-      fatalError("out of bounds")
+    return data.withUnsafeBufferPointer { buffer in
+      let range = (columns * index)..<(columns * (index + 1))
+      return Array(buffer[range])
     }
-    let range = (columns * index)..<(columns * (index + 1))
-    return Array(data[range])
   }
   
   func column(for index: Int) -> [Float] {
     return stride(from: 0, to: data.count, by: self.columns).map { rowIndex in
-      data[index + rowIndex]
+      data.withUnsafeBufferPointer { buffer in
+        return buffer[index + rowIndex]
+      }
     }
   }
   
   func rowsData() -> [[Float]] {
-    return stride(from: 0, to: data.count, by: self.columns).map { index in
-      Array(data[index ..< min(index + self.columns, data.count)])
+    return data.withUnsafeBufferPointer { buffer in
+      stride(from: 0, to: data.count, by: self.columns).map { index in
+        Array(buffer[index ..< min(index + self.columns, data.count)])
+      }
     }
   }
   
   func columnsData() -> [[Float]] {
-    return (0..<self.columns).map({column(for: $0)})
+    return data.withUnsafeBufferPointer { buffer in
+      let rowIndexes = (0..<self.columns).map({$0})
+      return rowIndexes.map { index in
+        return stride(from: 0, to: data.count, by: self.columns).map { rowIndex in
+          return buffer[index + rowIndex]
+        }
+      }
+    }
   }
   
   func swap(row firstRow: Int, with lastRow: Int) {

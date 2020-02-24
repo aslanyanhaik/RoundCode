@@ -24,7 +24,7 @@ import UIKit
 
 public final class RCCoder {
   
-  private var configuration: RCCoderConfiguration
+  public let configuration: RCCoderConfiguration
   
   public init(configuration: RCCoderConfiguration = .defaultConfiguration) {
     self.configuration = configuration
@@ -34,7 +34,10 @@ public final class RCCoder {
 public extension RCCoder {
   func encode(_ image: RCImage) throws -> UIImage {
     let bits = try encode(message: image.message)
-    image.bits = stride(from: 0, to: bits.count, by: bits.count / 4).map({Array(bits[$0 ..< min($0 + bits.count / 4, bits.count)])})
+    let bitChunks = stride(from: 0, to: bits.count, by: bits.count / 4).map({Array(bits[$0 ..< min($0 + bits.count / 4, bits.count)])})
+    image.bits = bitChunks.map { chunk -> [[RCBit]] in
+      return [0..<RCConstants.level1BitesCount, RCConstants.level1BitesCount..<RCConstants.level1BitesCount + RCConstants.level2BitesCount, RCConstants.level1BitesCount + RCConstants.level2BitesCount..<RCConstants.level1BitesCount + RCConstants.level2BitesCount + RCConstants.level3BitesCount].map({Array(chunk[$0])})
+    }
     let drawer = RCDrawer(image: image)
     return drawer.draw()
   }
@@ -52,13 +55,15 @@ public extension RCCoder {
 extension RCCoder {
   private func encode(message: String) throws -> [RCBit] {
     guard validate(message) else { throw RCCoderError.inValidText }
-    var dataBytes = [Int](repeating: 0, count: configuration.maxMessageCount)
-    message.enumerated().forEach({dataBytes[$0.offset] = configuration.symbols.firstIndex(of: $0.element)! + 1})
-    return dataBytes.map { byte -> [RCBit] in
+    let dataBytes = message.map({configuration.symbols.firstIndex(of: $0)! + 1})
+    let encodedBits = dataBytes.map { byte -> [RCBit] in
       var stringValue = String(repeating: "0", count: configuration.bitesPerSymbol)
       stringValue += String(byte, radix: 2)
       return stringValue.suffix(configuration.bitesPerSymbol).compactMap({RCBit($0)})
     }.flatMap({$0})
+    var totalBits = [RCBit](repeating: .zero, count: RCConstants.maxBites)
+    totalBits.insert(contentsOf: encodedBits, at: 0)
+    return Array(totalBits.prefix(RCConstants.maxBites))
   }
   
   private func decode(_ bits: [RCBit]) throws -> String {

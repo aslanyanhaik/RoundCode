@@ -20,19 +20,15 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-import UIKit
+import CoreGraphics
 
-public class RCImage {
+struct RCConstants {
+  static let maxBites = 400
+  static let level1BitesCount = 33
+  static let level2BitesCount = 33
+  static let level3BitesCount = 34
+  static let imageScale: CGFloat = 0.7
+  static let dotSizeScale: CGFloat = 0.12
+  static let dotPatterns: [CGFloat] = [6.5, 4.5, 2.5]
   
-  public var message = ""
-  public var size = CGFloat(300)
-  public var tintColor = UIColor.systemBlue
-  public var attachmentImage: UIImage?
-  public var isTransparent = false
-  public var contentInsets = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
-  internal var bits = [[[RCBit]]]() // 4 group of bits, each one with 3 lines of bit array
-  
-  public init(message: String = "") {
-    self.message = message
-  }
 }

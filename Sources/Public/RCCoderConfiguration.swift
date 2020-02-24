@@ -22,7 +22,7 @@
 
 import Foundation
 
-public struct RCCoderConfiguration {
+public class RCCoderConfiguration {
   
   public let symbols: [Character]
   public let maxMessageCount: Int
@@ -31,39 +31,25 @@ public struct RCCoderConfiguration {
     CharacterSet(charactersIn: symbols.map({String($0)}).reduce("", +))
   }()
   
-  public init(symbols: String, maxMessageCount: Int) throws {
-    var hash = [Character : Int]()
-    for value in symbols.enumerated() {
-      if hash[value.element] != nil {
-        throw RCCoderConfigurationError.containsDuplicateSymbols
-      }
-      hash[value.element] = value.offset
-    }
+  public init(symbols: String) {
     self.symbols = symbols.map({$0})
-    self.maxMessageCount = maxMessageCount
     self.bitesPerSymbol = String(symbols.count, radix: 2).count
+    self.maxMessageCount = RCConstants.maxBites / bitesPerSymbol
   }
   
   public static var uuidConfiguration: RCCoderConfiguration {
-    return try! RCCoderConfiguration(symbols: "-abcdef0123456789", maxMessageCount: 36)
+    return RCCoderConfiguration(symbols: "-ABCDEF0123456789")
   }
   
   public static var numericConfiguration: RCCoderConfiguration {
-    return try! RCCoderConfiguration(symbols: ".,_0123456789", maxMessageCount: 25)
+    return RCCoderConfiguration(symbols: ".,_0123456789")
   }
   
   public static var defaultConfiguration: RCCoderConfiguration {
-    return try! RCCoderConfiguration(symbols: " -abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", maxMessageCount: 32)
+    return RCCoderConfiguration(symbols: " -abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
   }
   
   public static var asciiConfiguration: RCCoderConfiguration {
-    return try! RCCoderConfiguration(symbols: ##"! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"##, maxMessageCount: 42)
-  }
-}
-
-public extension RCCoderConfiguration {
-  
-  enum RCCoderConfigurationError: Error {
-    case containsDuplicateSymbols
+    return RCCoderConfiguration(symbols: ##"! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"##)
   }
 }

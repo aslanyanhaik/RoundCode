@@ -31,7 +31,7 @@ class RCDrawer {
   }
   
   func draw() -> UIImage {
-    let rect = CGRect(origin: .zero, size: CGSize(width: image.size, height: image.size))
+    let rect = CGRect(origin: .zero, size: CGSize(width: image.size + image.contentInsets.left + image.contentInsets.right, height: image.size + image.contentInsets.top + image.contentInsets.bottom))
     let renderer = UIGraphicsImageRenderer(bounds: rect, format: .default())
     let image = renderer.image { context in
       let cgContext = context.cgContext
@@ -40,7 +40,9 @@ class RCDrawer {
         context.fill(rect)
       }
       self.image.tintColor.setFill()
-      let size = self.image.size - self.image.size * 0.15
+      self.image.tintColor.setStroke()
+      cgContext.translateBy(x: self.image.contentInsets.left, y: self.image.contentInsets.top)
+      let size = self.image.size - self.image.size * RCConstants.dotSizeScale
       let halfSize = size / 2
       [(halfSize, 0), (size, halfSize), (halfSize, size), (0, halfSize)].map({CGPoint(x: $0.0, y: $0.1)}).forEach { point in
         cgContext.saveGState()
@@ -49,15 +51,16 @@ class RCDrawer {
         cgContext.restoreGState()
       }
       cgContext.saveGState()
-      cgContext.translateBy(x: rect.size.height / 4, y:  rect.size.height / 4)
-      cgContext.scaleBy(x: 0.5, y: 0.5)
+      let imageTranslation = rect.size.height * (1 - RCConstants.imageScale) / 2
+      cgContext.translateBy(x: imageTranslation, y:  imageTranslation)
+      cgContext.scaleBy(x: RCConstants.imageScale, y: RCConstants.imageScale)
       drawImage()
       cgContext.restoreGState()
       for value in self.image.bits.enumerated() {
         cgContext.saveGState()
         cgContext.translateBy(x: self.image.size / 2, y: self.image.size / 2)
-        cgContext.rotate(by: CGFloat(value.offset) * CGFloat.pi / 2)
-        drawMessage(row: value.element)
+        cgContext.rotate(by: CGFloat(value.offset - 1) * CGFloat.pi / 2)
+        drawMessage(group: value.element)
         cgContext.restoreGState()
       }
     }
@@ -68,8 +71,8 @@ class RCDrawer {
 private extension RCDrawer {
   func drawDot() {
     let dot = UIBezierPath()
-    let patternSingleSize = image.size * 0.15 / 6.5
-    let patternSizes = [6.5, 4.5, 2.5].map({$0 * patternSingleSize})
+    let patternSingleSize = image.size * RCConstants.dotSizeScale / RCConstants.dotPatterns.max()!
+    let patternSizes = RCConstants.dotPatterns.map({$0 * patternSingleSize})
     for value in patternSizes.enumerated() {
       let path = UIBezierPath(ovalIn: CGRect(x: (patternSizes[0] - value.element) / 2, y: (patternSizes[0] - value.element) / 2, width: value.element, height: value.element))
       path.close()
@@ -93,7 +96,33 @@ private extension RCDrawer {
     image.draw(in: scaledImageRect, blendMode: .normal, alpha: 1)
   }
   
-  func drawMessage() {
-    
+  func drawMessage(group: [[RCBit]]) {
+    let lineWidth = image.size * RCConstants.dotSizeScale / 7 //number of lines including spaces
+    let radius = (self.image.size - lineWidth) / 2
+    let path = UIBezierPath()
+    let radiuses = Array(group.indices.map({radius - lineWidth * CGFloat($0 * 2)}).reversed())
+    zip(radiuses, group).forEach {
+      let bits = $0.1
+      let radius = $0.0
+      let startPosition = asin(self.image.size * RCConstants.dotSizeScale / radius / 1.5)
+      let distancePerBit = (CGFloat.pi / 2 - startPosition - startPosition) / CGFloat(bits.count)
+      var drawFromIdx = -1
+      bits.enumerated().forEach { value in
+        if drawFromIdx < 0 && value.element.boolValue {
+          drawFromIdx = value.offset
+        }
+        if (!value.element.boolValue || value.offset == bits.count - 1) && drawFromIdx >= 0 {
+          let startAngel = startPosition + CGFloat(drawFromIdx) * distancePerBit
+          let distance = value.element.boolValue ? (value.offset + 1) : value.offset
+          let endAngel = startAngel + CGFloat(distance - drawFromIdx) * distancePerBit
+          let linePath = UIBezierPath(arcCenter: .zero, radius: radius, startAngle: startAngel, endAngle: endAngel, clockwise: true)
+          path.append(linePath)
+          drawFromIdx = -1
+        }
+      }
+    }
+    path.lineWidth = lineWidth
+    path.lineCapStyle = .round
+    path.stroke()
   }
 }

@@ -27,6 +27,10 @@ enum RCBit: Int {
   case zero
   case one
   
+  var boolValue: Bool {
+    return self == .zero ? false : true
+  }
+  
   init?(_ character: Character) {
     switch character {
       case "0": self = .zero
