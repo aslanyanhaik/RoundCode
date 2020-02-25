@@ -24,17 +24,34 @@ import Foundation
 
 public class RCCoderConfiguration {
   
-  public let symbols: [Character]
   public let maxMessageCount: Int
-  internal let bitesPerSymbol: Int
-  internal lazy var characterSet: CharacterSet = {
-    CharacterSet(charactersIn: symbols.map({String($0)}).reduce("", +))
-  }()
+  public let symbols: [Character]
+  public let bitesPerSymbol: Int
+  internal let emptySymbols: [Character]
+  internal let characterSet: CharacterSet
   
-  public init(symbols: String) {
-    self.symbols = symbols.map({$0})
+  public init(symbols: String, shouldFillEmptySpace: Bool = true) {
+    self.characterSet = CharacterSet(charactersIn: symbols.map({String($0)}).reduce("", +))
+    var symbolsArray = symbols.map({$0})
+    if shouldFillEmptySpace {
+      self.emptySymbols = RCConstants.emptySymbols
+      symbolsArray.insert(emptySymbols[0], at: symbolsArray.count / 3)
+      symbolsArray.insert(emptySymbols[1], at: symbolsArray.count / 3 * 2)
+    } else {
+      self.emptySymbols = [RCConstants.emptySymbols[0]]
+      symbolsArray.insert(emptySymbols[0], at: 0)
+    }
+    self.symbols = symbolsArray
     self.bitesPerSymbol = String(symbols.count, radix: 2).count
     self.maxMessageCount = RCConstants.maxBites / bitesPerSymbol
+  }
+  
+  func indexOf(symbol: Character) -> Int {
+    return symbols.firstIndex(of: symbol)!
+  }
+  
+  func emptySymbolsIndex() -> [Int] {
+    return emptySymbols.map({symbols.firstIndex(of: $0)!})
   }
   
   public static var uuidConfiguration: RCCoderConfiguration {
@@ -45,11 +62,11 @@ public class RCCoderConfiguration {
     return RCCoderConfiguration(symbols: ".,_0123456789")
   }
   
-  public static var defaultConfiguration: RCCoderConfiguration {
+  public static var shortConfiguration: RCCoderConfiguration {
     return RCCoderConfiguration(symbols: " -abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
   }
   
-  public static var asciiConfiguration: RCCoderConfiguration {
+  public static var defaultConfiguration: RCCoderConfiguration {
     return RCCoderConfiguration(symbols: ##"! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"##)
   }
 }

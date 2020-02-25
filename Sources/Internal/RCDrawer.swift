@@ -51,7 +51,7 @@ class RCDrawer {
         cgContext.restoreGState()
       }
       cgContext.saveGState()
-      let imageTranslation = rect.size.height * (1 - RCConstants.imageScale) / 2
+      let imageTranslation = self.image.size * (1 - RCConstants.imageScale) / 2
       cgContext.translateBy(x: imageTranslation, y:  imageTranslation)
       cgContext.scaleBy(x: RCConstants.imageScale, y: RCConstants.imageScale)
       drawImage()
@@ -97,28 +97,22 @@ private extension RCDrawer {
   }
   
   func drawMessage(group: [[RCBit]]) {
-    let lineWidth = image.size * RCConstants.dotSizeScale / 7 //number of lines including spaces
-    let radius = (self.image.size - lineWidth) / 2
+    guard !image.message.isEmpty else { return }
+    let lineWidth = image.size * RCConstants.dotSizeScale / 11 * 2 //number of lines including spaces
+    let mainRadius = (self.image.size - lineWidth) / 2
     let path = UIBezierPath()
-    let radiuses = Array(group.indices.map({radius - lineWidth * CGFloat($0 * 2)}).reversed())
-    zip(radiuses, group).forEach {
+    let rowRadius = group.indices.map({mainRadius - lineWidth * CGFloat($0 * 2)})
+    let startAngle = asin(self.image.size * RCConstants.dotSizeScale / mainRadius)
+    let distancePerBit = (CGFloat.pi / 2 - startAngle * 2) / CGFloat(group.first!.count)
+    zip(rowRadius, group).forEach {
       let bits = $0.1
       let radius = $0.0
-      let startPosition = asin(self.image.size * RCConstants.dotSizeScale / radius / 1.5)
-      let distancePerBit = (CGFloat.pi / 2 - startPosition - startPosition) / CGFloat(bits.count)
-      var drawFromIdx = -1
-      bits.enumerated().forEach { value in
-        if drawFromIdx < 0 && value.element.boolValue {
-          drawFromIdx = value.offset
-        }
-        if (!value.element.boolValue || value.offset == bits.count - 1) && drawFromIdx >= 0 {
-          let startAngel = startPosition + CGFloat(drawFromIdx) * distancePerBit
-          let distance = value.element.boolValue ? (value.offset + 1) : value.offset
-          let endAngel = startAngel + CGFloat(distance - drawFromIdx) * distancePerBit
-          let linePath = UIBezierPath(arcCenter: .zero, radius: radius, startAngle: startAngel, endAngle: endAngel, clockwise: true)
-          path.append(linePath)
-          drawFromIdx = -1
-        }
+      for (offset, bit) in bits.enumerated() {
+        guard bit.boolValue else { continue }
+        let startPosition = startAngle + distancePerBit * CGFloat(offset)
+        let endPosition = startPosition + distancePerBit
+        let linePath = UIBezierPath(arcCenter: .zero, radius: radius, startAngle: startPosition, endAngle: endPosition, clockwise: true)
+        path.append(linePath)
       }
     }
     path.lineWidth = lineWidth

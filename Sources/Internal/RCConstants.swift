@@ -23,12 +23,13 @@
 import CoreGraphics
 
 struct RCConstants {
-  static let maxBites = 400
-  static let level1BitesCount = 33
-  static let level2BitesCount = 33
-  static let level3BitesCount = 34
-  static let imageScale: CGFloat = 0.7
-  static let dotSizeScale: CGFloat = 0.12
+  static let maxBites = 276
+  static let level1BitesCount = 23
+  static let level2BitesCount = 23
+  static let level3BitesCount = 23
+  static let imageScale: CGFloat = 0.78
+  static let dotSizeScale: CGFloat = 0.1
   static let dotPatterns: [CGFloat] = [6.5, 4.5, 2.5]
+  static let emptySymbols: [Character] = ["\u{0540}", "\u{0531}"]
   
 }
