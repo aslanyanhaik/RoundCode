@@ -20,27 +20,24 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-import UIKit
+import Foundation
 
-public class RCImage {
+class RCBitGroup {
   
-  public var message: String
-  public var size = CGFloat(300)
-  public var tintColors: [UIColor] = [.orange, .gray]//[.orange, .magenta]
-  public var attachmentImage: UIImage?
-  public var isTransparent = false
-  public var gradientType = GradientType.linear(angle: CGFloat.pi / 2)
-  public var contentInsets = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
-  internal var bits = [[[RCBitGroup]]]() // 4 group of bits, each one with 3 lines of bit array
+  var bit: RCBit
+  var count: Int
+  var offset: Int
   
-  public init(message: String) {
-    self.message = message
+  init(bit: RCBit, count: Int, offset: Int) {
+    self.bit = bit
+    self.count = count
+    self.offset = offset
   }
 }
 
-public extension RCImage {
-  enum GradientType {
-    case linear(angle: CGFloat)
-    case radial
+extension RCBitGroup: CustomDebugStringConvertible {
+  var debugDescription: String {
+    "bit: \(bit), count: \(count), offset: \(offset) \n"
   }
 }
+
