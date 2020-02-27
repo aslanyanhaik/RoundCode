@@ -22,27 +22,27 @@
 
 import Accelerate
 
-final class RCMatrix {
+final class RCMatrix<T: Numeric & Hashable> {
   
   //MARK: Properties
   let rows: Int
   var columns: Int {
     data.count / rows
   }
-  var data: [Float]
+  var data: [T]
   
   //MARK: Inits
   init(size: Int) {
     self.rows = size
-    data = [Float](repeating: 0, count: rows * rows)
+    data = [T](repeating: 0, count: rows * rows)
   }
   
   init(rows: Int, columns: Int) {
     self.rows = rows
-    data = [Float](repeating: 0, count: rows * columns)
+    data = [T](repeating: 0, count: rows * columns)
   }
   
-  init(columns: Int, items: [Float]) {
+  init(columns: Int, items: [T]) {
     guard items.count % columns == 0 else {
       fatalError("number of columns are not matching")
     }
@@ -50,7 +50,7 @@ final class RCMatrix {
     self.data = items
   }
   
-  init(rows: Int, items: [Float]) {
+  init(rows: Int, items: [T]) {
     guard items.count % rows == 0 else {
       fatalError("number of rows are not matching")
     }
@@ -67,7 +67,7 @@ extension RCMatrix {
     return matrix
   }
   
-  subscript(row: Int, column: Int) -> Float {
+  subscript(column: Int, row: Int) -> T {
     get {
       return data.withUnsafeBufferPointer { buffer in
         return buffer[self.rows * row + column]
@@ -80,14 +80,14 @@ extension RCMatrix {
     }
   }
   
-  func row(for index: Int) -> [Float] {
+  func row(for index: Int) -> [T] {
     return data.withUnsafeBufferPointer { buffer in
       let range = (columns * index)..<(columns * (index + 1))
       return Array(buffer[range])
     }
   }
   
-  func column(for index: Int) -> [Float] {
+  func column(for index: Int) -> [T] {
     return stride(from: 0, to: data.count, by: self.columns).map { rowIndex in
       data.withUnsafeBufferPointer { buffer in
         return buffer[index + rowIndex]
@@ -95,7 +95,7 @@ extension RCMatrix {
     }
   }
   
-  func rowsData() -> [[Float]] {
+  func rowsData() -> [[T]] {
     return data.withUnsafeBufferPointer { buffer in
       stride(from: 0, to: data.count, by: self.columns).map { index in
         Array(buffer[index ..< min(index + self.columns, data.count)])
@@ -103,7 +103,7 @@ extension RCMatrix {
     }
   }
   
-  func columnsData() -> [[Float]] {
+  func columnsData() -> [[T]] {
     return data.withUnsafeBufferPointer { buffer in
       let rowIndexes = (0..<self.columns).map({$0})
       return rowIndexes.map { index in
@@ -120,21 +120,28 @@ extension RCMatrix {
     self.data = rowsData.flatMap({$0})
   }
   
-  func multiply(by matrix: RCMatrix) -> RCMatrix {
-    guard self.columns == matrix.rows else {
-      fatalError("Cannot subract matrices of different dimensions")
-    }
-    var result = [Float](repeating: 0, count: self.rows * matrix.columns)
-    vDSP_mmul(self.data, 1, matrix.data, 1, &result, 1, UInt(self.rows), UInt(matrix.columns), UInt(self.columns))
-    return RCMatrix(rows: self.rows, items: result)
-  }
-  
   func augment(by matrix: RCMatrix) -> RCMatrix {
     guard self.rows == matrix.rows else {
       fatalError("Matrices don't have the same number of rows")
     }
     let data = zip(self.rowsData(), matrix.rowsData()).map({$0.0 + $0.1}).flatMap({$0})
     return RCMatrix(rows: self.rows, items: data)
+  }
+  
+  func subMatrix(rowMin: Int, columnMin: Int, rowMax: Int, columnMax: Int) -> RCMatrix {
+    let data = rowsData()[rowMin...rowMax].map({$0[columnMin...columnMax]}).flatMap({$0})
+    return RCMatrix(rows: (rowMin...rowMax).count, items: data)
+  }
+}
+
+extension RCMatrix where T == Float {
+  func multiply(by matrix: RCMatrix) -> RCMatrix {
+    guard self.columns == matrix.rows else {
+      fatalError("Cannot subract matrices of different dimensions")
+    }
+    var result = [T](repeating: 0, count: self.rows * matrix.columns)
+    vDSP_mmul(self.data, 1, matrix.data, 1, &result, 1, UInt(self.rows), UInt(matrix.columns), UInt(self.columns))
+    return RCMatrix(rows: self.rows, items: result)
   }
   
   func inverted() -> RCMatrix {
@@ -153,12 +160,7 @@ extension RCMatrix {
     guard error == 0 else {
       fatalError("error inverting matrix: Error(\(error))")
     }
-    return RCMatrix(rows: self.rows, items: invertedData.map({Float($0)}))
-  }
-  
-  func subMatrix(rowMin: Int, columnMin: Int, rowMax: Int, columnMax: Int) -> RCMatrix {
-    let data = rowsData()[rowMin...rowMax].map({$0[columnMin...columnMax]}).flatMap({$0})
-    return RCMatrix(rows: (rowMin...rowMax).count, items: data)
+    return RCMatrix(rows: self.rows, items: invertedData.map({T($0)}))
   }
 }
 
