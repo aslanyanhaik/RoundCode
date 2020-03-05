@@ -23,12 +23,21 @@
 import UIKit
 import AVFoundation
 
-public class RCCameraViewController: UIViewController, UIImagePickerControllerDelegate {
+public final class RCCameraViewController: UIViewController, UIImagePickerControllerDelegate {
   
   //MARK: Public properties
   public weak var delegate: RCCameraViewControllerDelegate?
-  public var cancelButtonTitle = "Cancel"
+  public var configuration = RCCoderConfiguration.defaultConfiguration
+  override public var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+    .portrait
+  }
+  public override var prefersStatusBarHidden: Bool {
+    true
+  }
   //Private properties
+  private lazy var coder: RCCoder = {
+    RCCoder(configuration: self.configuration)
+  }()
   private var captureSession = AVCaptureSession()
   private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
   private var maskLayer = CAShapeLayer()
@@ -43,6 +52,7 @@ public class RCCameraViewController: UIViewController, UIImagePickerControllerDe
     cameraView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: 0).isActive = true
     return cameraView
   }()
+  
   
   //MARK: Inits
   public required init?(coder: NSCoder) {
@@ -97,39 +107,27 @@ extension RCCameraViewController {
 //MARK: Private methods
 extension RCCameraViewController {
   
-  func configureCancelButton() {
-    let topView = UIView()
-    let topContainerView = UIView()
-    view.addSubview(topView)
-    topView.addSubview(topContainerView)
-    [topView, topContainerView].forEach { view in
-      view.translatesAutoresizingMaskIntoConstraints = false
-      view.backgroundColor = .clear
-      view.leadingAnchor.constraint(equalTo: view.superview!.leadingAnchor).isActive = true
-      view.trailingAnchor.constraint(equalTo: view.superview!.trailingAnchor).isActive = true
+  private func configureCancelButton() {
+    let cancelButton = UIButton(type: .custom)
+    cancelButton.addTarget(self, action: #selector(cancelPressed), for: .touchUpInside)
+    cancelButton.setImage(UIImage(systemName: "xmark"), for: .normal)
+    cancelButton.tintColor = .white
+    view.addSubview(cancelButton)
+    cancelButton.translatesAutoresizingMaskIntoConstraints = false
+    view.trailingAnchor.constraint(equalTo: cancelButton.trailingAnchor, constant: 30).isActive = true
+    cancelButton.topAnchor.constraint(equalTo: view.layoutMarginsGuide.topAnchor, constant: 20).isActive = true
+  }
+  
+  @objc private func cancelPressed() {
+    dismiss(animated: true) {
+      self.delegate?.cameraViewControllerDidCancel(self)
     }
-    topView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
-    topContainerView.heightAnchor.constraint(equalToConstant: 40).isActive = true
-    topContainerView.topAnchor.constraint(equalTo: view.layoutMarginsGuide.topAnchor).isActive = true
-    topContainerView.bottomAnchor.constraint(equalTo: topView.bottomAnchor, constant: 0).isActive = true
-    let button = UIButton(type: .system)
-    button.setTitle(cancelButtonTitle, for: .normal)
-    button.addTarget(self, action: #selector(cancelPressed), for: .touchUpInside)
-    button.tintColor = .white
-    topContainerView.addSubview(button)
-    button.translatesAutoresizingMaskIntoConstraints = false
-    topContainerView.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: 20).isActive = true
-    button.centerYAnchor.constraint(equalTo: topContainerView.centerYAnchor).isActive = true
   }
   
-  @objc func cancelPressed() {
-    delegate?.cameraViewControllerDidCancel(self)
-  }
-  
-  func configureMaskLayer() {
+  private func configureMaskLayer() {
     let path = UIBezierPath(roundedRect: view.bounds, cornerRadius: 0)
-    let centerPoint = CGPoint(x: view.bounds.midX, y: view.bounds.midY - 30)
-    let radius = min(view.bounds.width, view.bounds.height) / 2 - 50
+    let centerPoint = CGPoint(x: view.bounds.midX, y: view.bounds.midY)
+    let radius = min(view.bounds.width, view.bounds.height) * 0.9 / 2
     let circlePath = UIBezierPath(arcCenter: centerPoint, radius: radius, startAngle: 0, endAngle: CGFloat.pi * 2, clockwise: true)
     path.append(circlePath)
     path.usesEvenOddFillRule = true
@@ -142,12 +140,17 @@ extension RCCameraViewController {
     circleLayer.fillColor = UIColor.clear.cgColor
   }
   
-  func configureVideoStream() {
+  private func configureVideoStream() {
     guard let captureDevice = AVCaptureDevice.default(for: .video) else { return }
     do {
+      captureSession.sessionPreset = .hd1280x720
       let input = try AVCaptureDeviceInput(device: captureDevice)
       captureSession.addInput(input)
       let videoOutput = AVCaptureVideoDataOutput()
+      if let con = videoOutput.connection(with: .video) {
+        con.videoOrientation = .portrait
+        print(123)
+      }
       videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue.global(qos: .background))
       videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: NSNumber(value: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)]
       captureSession.addOutput(videoOutput)
@@ -156,7 +159,7 @@ extension RCCameraViewController {
     }
   }
   
-  func configureVideoPreview(orientation: AVCaptureVideoOrientation = .portrait) {
+  private func configureVideoPreview(orientation: AVCaptureVideoOrientation = .portrait) {
     videoPreviewLayer?.removeFromSuperlayer()
     videoPreviewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
     videoPreviewLayer?.videoGravity = .resizeAspectFill
@@ -170,6 +173,29 @@ extension RCCameraViewController {
 extension RCCameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
   
   public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-    
+    connection.videoOrientation = .portrait
+    guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+    CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
+    let date = Date()
+    let bytesPerRow = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0)
+    let bufferHeight = CVPixelBufferGetHeightOfPlane(pixelBuffer, 0)
+    let bufferWidth = CVPixelBufferGetWidthOfPlane(pixelBuffer, 0)
+    let size = min(bufferWidth, bufferHeight)
+    let origin = (max(bufferWidth, bufferHeight) - size) / 2
+    let lumaBaseAddress = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0)?.advanced(by: bytesPerRow * origin)
+    let lumaCopy = UnsafeMutableRawPointer.allocate(byteCount: bytesPerRow * size, alignment: MemoryLayout<UInt8>.alignment)
+    lumaCopy.copyMemory(from: lumaBaseAddress!, byteCount: bytesPerRow * size)
+    let bufferData = UnsafeMutableBufferPointer<UInt8>(start: lumaCopy.bindMemory(to: UInt8.self, capacity: size * bytesPerRow), count: size * bytesPerRow)
+    if let message = try? coder.decode(bufferData, size: size) {
+      DispatchQueue.main.async {[weak self] in
+        guard let weakSelf = self else { return }
+        weakSelf.dismiss(animated: true) {
+          weakSelf.delegate?.cameraViewController(weakSelf, didFinishPickingScanning: message)
+        }
+      }
+    }
+    print(Date().timeIntervalSince(date))
+    lumaCopy.deallocate()
+    CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
   }
 }
