@@ -25,6 +25,9 @@ import UIKit
 public final class RCCoder {
   
   public let configuration: RCCoderConfiguration
+  private lazy var imageDecoder = RCImageDecoder()
+  private lazy var imageEncoder = RCImageEncoder()
+  private lazy var bitCoder = RCBitCoder(configuration: self.configuration)
   
   public init(configuration: RCCoderConfiguration = .defaultConfiguration) {
     self.configuration = configuration
@@ -33,15 +36,18 @@ public final class RCCoder {
 
 public extension RCCoder {
   func encode(_ image: RCImage) throws -> UIImage {
-    image.bits = try encode(message: image.message)
-    let drawer = RCDrawer(image: image)
-    return drawer.draw()
+    let bits = try bitCoder.encode(message: image.message)
+    let image = imageEncoder.encode(image, bits: bits)
+    return image
   }
   
   func decode(_ image: UIImage) throws -> String {
-    let bits = try RCImageDecoder().decode(image)
-    let message = try decode(bits)
-    return message
+    guard image.size.width == image.size.height else { throw RCError.wrongImageSize }
+    //make grayscale
+    //make CVPixelBuffer
+    //decode image
+    //decode bits
+    return "message"
   }
   
   func validate(_ text: String) -> Bool {
@@ -50,82 +56,10 @@ public extension RCCoder {
 }
 
 extension RCCoder {
-  private func encode(message: String) throws -> [[[RCBitGroup]]] {
-    guard message.trimmingCharacters(in: configuration.characterSet).isEmpty else {
-      throw RCCoderError.invalidCharacter
-    }
-    guard message.count <= configuration.maxMessageCount else {
-      throw RCCoderError.longText
-    }
-    let dataBytes = message.map({configuration.symbols.firstIndex(of: $0)!})
-    let emptyIndexes = configuration.emptySymbolsIndex()
-    var randomBytes = (0..<configuration.maxMessageCount).map({_ in emptyIndexes[Int.random(in: 0..<emptyIndexes.count)]})
-    randomBytes.insert(contentsOf: dataBytes, at: 0)
-    randomBytes = Array(randomBytes.prefix(configuration.maxMessageCount))
-    let encodedBits = randomBytes.map { byte -> [RCBit] in
-      var stringValue = String(repeating: "0", count: configuration.bitesPerSymbol)
-      stringValue += String(byte, radix: 2)
-      return stringValue.suffix(configuration.bitesPerSymbol).compactMap({RCBit($0)})
-    }.flatMap({$0})
-    var totalBits = [RCBit](repeating: .zero, count: RCConstants.maxBites)
-    totalBits.insert(contentsOf: encodedBits, at: 0)
-    totalBits = Array(totalBits.prefix(RCConstants.maxBites))
-    let bitChunks = [RCConstants.level1BitesCount, RCConstants.level2BitesCount, RCConstants.level3BitesCount].map { count in
-      return (0...3).map { _ -> [RCBit] in // 4 groups
-        let bitChunk = Array(totalBits.prefix(count))
-        totalBits = Array(totalBits.dropFirst(count))
-        return bitChunk
-      }
-    }
-    let bitGroups = zip(bitChunks[0], zip(bitChunks[1], bitChunks[2])).map {[$0.0, $0.1.0, $0.1.1]}.map { group in
-      group.map { row -> [RCBitGroup] in
-        var bitGroupRow = [RCBitGroup(bit: row[0], count: 0, offset: 0)]
-        row.enumerated().forEach { value  in
-          bitGroupRow.last!.bit == value.element ? bitGroupRow.last!.count += 1 : bitGroupRow.append(RCBitGroup(bit: value.element, count: 1, offset: value.offset))
-        }
-        return bitGroupRow
-      }
-    }
-    return bitGroups
-  }
   
-  private func decode(_ bits: [RCBit]) throws -> String {
-    guard bits.contains(.one) else { return "" }
-    let emptyIndexes = configuration.emptySymbolsIndex()
-    let bitChunks = stride(from: 0, to: bits.count, by: configuration.bitesPerSymbol).map {
-      Array(bits[$0 ..< min($0 + configuration.bitesPerSymbol, bits.count)])
-    }
-    var indexes = bitChunks.map({ bits in
-      return bits.reduce(0) { accumulated, current in
-        accumulated << 1 | current.rawValue
-      }
-    })
-    indexes = Array(indexes.prefix(configuration.maxMessageCount)).filter({!emptyIndexes.contains($0)})
-    guard (indexes.max() ?? 0) <= configuration.symbols.count else {
-      throw RCCoderError.wrongConfiguration
-    }
-    return String(indexes.compactMap({configuration.symbols[$0]}))
-  }
-}
-
-public extension RCCoder {
-  enum RCCoderError: Error {
-    case invalidCharacter
-    case longText
-    case wrongConfiguration
-    case decoding
-    
-    var localizedDescription: String {
-      switch self {
-        case .invalidCharacter:
-          return "message contains character which is not in characterSet"
-        case .longText:
-          return "message characters count exceeds configuration maximum characters"
-        case .wrongConfiguration:
-          return "Error decoding. The configuration is not matching to encoded image"
-        case .decoding:
-          return "Error decoding."
-      }
-    }
+  func decode(buffer: UnsafeMutableBufferPointer<UInt8>, size: Int) throws -> String {
+    let bits = try imageDecoder.process(buffer: buffer, size: size)
+    let message = try bitCoder.decode(bits)
+    return message
   }
 }

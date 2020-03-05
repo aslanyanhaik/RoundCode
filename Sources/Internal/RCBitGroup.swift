@@ -22,7 +22,7 @@
 
 import Foundation
 
-class RCBitGroup {
+final class RCBitGroup {
   
   var bit: RCBit
   var count: Int

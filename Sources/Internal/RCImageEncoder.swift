@@ -22,64 +22,58 @@
 
 import UIKit
 
-class RCDrawer {
+final class RCImageEncoder {
   
-  let image: RCImage
-  
-  init(image: RCImage) {
-    self.image = image
-  }
-  
-  func draw() -> UIImage {
+  func encode(_ image: RCImage, bits: [[[RCBitGroup]]]) -> UIImage {
     let rect = CGRect(origin: .zero, size: CGSize(width: image.size + image.contentInsets.left + image.contentInsets.right, height: image.size + image.contentInsets.top + image.contentInsets.bottom))
     let renderer = UIGraphicsImageRenderer(bounds: rect, format: .default())
-    let image = renderer.image { context in
+    let renderedImage = renderer.image { context in
       let cgContext = context.cgContext
-      if !self.image.isTransparent {
+      if !image.isTransparent {
         UIColor.white.setFill()
         context.fill(rect)
       }
-      cgContext.translateBy(x: self.image.contentInsets.left, y: self.image.contentInsets.top)
+      cgContext.translateBy(x: image.contentInsets.left, y: image.contentInsets.top)
       cgContext.saveGState()
       cgContext.saveGState()
-      let imageTranslation = self.image.size * (1 - RCConstants.imageScale) / 2
+      let imageTranslation = image.size * (1 - RCConstants.imageScale) / 2
       cgContext.translateBy(x: imageTranslation, y:  imageTranslation)
       cgContext.scaleBy(x: RCConstants.imageScale, y: RCConstants.imageScale)
-      drawImage()
+      drawAttachment(image)
       cgContext.restoreGState()
       var adjustedRect = rect
-      adjustedRect.origin.x = -self.image.contentInsets.left
-      adjustedRect.origin.y = -self.image.contentInsets.top
+      adjustedRect.origin.x = -image.contentInsets.left
+      adjustedRect.origin.y = -image.contentInsets.top
       let rectPath = UIBezierPath(rect: adjustedRect)
       rectPath.addClip()
       rectPath.usesEvenOddFillRule = true
       let mainPath = UIBezierPath()
-      let size = self.image.size - self.image.size * RCConstants.dotSizeScale
+      let size = image.size - image.size * RCConstants.dotSizeScale
       let halfSize = size / 2
       [(halfSize, 0), (size, halfSize), (halfSize, size), (0, halfSize)].map({CGPoint(x: $0.0, y: $0.1)}).forEach { point in
-        drawDot(position: point, path: mainPath)
+        drawDot(image: image, position: point, path: mainPath)
       }
-      self.image.bits.enumerated().forEach { value in
-        drawMessage(group: value.element, angle: CGFloat(value.offset - 1) * CGFloat.pi / 2, path: mainPath)
+      bits.enumerated().forEach { value in
+        drawMessage(image: image, group: value.element, angle: CGFloat(value.offset - 1) * CGFloat.pi / 2, path: mainPath)
       }
       mainPath.usesEvenOddFillRule = true
       mainPath.addClip()
       let colorSpace = CGColorSpaceCreateDeviceRGB()
-      let gradient = CGGradient(colorsSpace: colorSpace, colors: self.image.tintColors.map({$0.cgColor}) as CFArray, locations: nil)!
-      switch self.image.gradientType {
+      let gradient = CGGradient(colorsSpace: colorSpace, colors: image.tintColors.map({$0.cgColor}) as CFArray, locations: nil)!
+      switch image.gradientType {
         case .linear:
-          cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: self.image.size, y: self.image.size), options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
+          cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: image.size, y: image.size), options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
         case .radial:
-          let startPoint = CGPoint(x: self.image.size / 2, y: self.image.size / 2)
-          cgContext.drawRadialGradient(gradient, startCenter: startPoint, startRadius: self.image.size * (1 - RCConstants.dotSizeScale) / 2, endCenter: startPoint, endRadius: self.image.size / 2, options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
+          let startPoint = CGPoint(x: image.size / 2, y: image.size / 2)
+          cgContext.drawRadialGradient(gradient, startCenter: startPoint, startRadius: image.size * (1 - RCConstants.dotSizeScale) / 2, endCenter: startPoint, endRadius: image.size / 2, options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
       }
     }
-    return image
+    return renderedImage
   }
 }
 
-private extension RCDrawer {
-  func drawDot(position: CGPoint, path: UIBezierPath) {
+private extension RCImageEncoder {
+  func drawDot(image: RCImage, position: CGPoint, path: UIBezierPath) {
     let patternSingleSize = image.size * RCConstants.dotSizeScale / RCConstants.dotPatterns.max()!
     let patternSizes = RCConstants.dotPatterns.map({$0 * patternSingleSize})
     patternSizes.enumerated().forEach { value in
@@ -89,28 +83,28 @@ private extension RCDrawer {
     }
   }
   
-  func drawImage() {
-    guard let image = self.image.attachmentImage else { return }
-    let rect = CGRect(origin: .zero, size: CGSize(width: self.image.size, height: self.image.size))
+  func drawAttachment(_ image: RCImage) {
+    guard let attachmentImage = image.attachmentImage else { return }
+    let rect = CGRect(origin: .zero, size: CGSize(width: image.size, height: image.size))
     let path = UIBezierPath(ovalIn: rect)
     path.addClip()
-    let aspectRatio = max(self.image.size / image.size.width, self.image.size / image.size.height)
+    let aspectRatio = max(image.size / attachmentImage.size.width, image.size / attachmentImage.size.height)
     let scaledImageRect = CGRect(
-      x: (self.image.size - image.size.width * aspectRatio) / 2,
-      y: (self.image.size - image.size.height * aspectRatio) / 2,
-      width: image.size.width * aspectRatio,
-      height: image.size.height * aspectRatio)
-    image.draw(in: scaledImageRect, blendMode: .normal, alpha: 1)
+      x: (image.size - attachmentImage.size.width * aspectRatio) / 2,
+      y: (image.size - attachmentImage.size.height * aspectRatio) / 2,
+      width: attachmentImage.size.width * aspectRatio,
+      height: attachmentImage.size.height * aspectRatio)
+    attachmentImage.draw(in: scaledImageRect, blendMode: .normal, alpha: 1)
   }
   
-  func drawMessage(group: [[RCBitGroup]], angle: CGFloat, path: UIBezierPath) {
+  func drawMessage(image: RCImage, group: [[RCBitGroup]], angle: CGFloat, path: UIBezierPath) {
     guard !image.message.isEmpty else { return }
     let lineWidth = image.size * RCConstants.dotSizeScale / 11 * 2 //number of lines including spaces
-    let mainRadius = (self.image.size - lineWidth) / 2
+    let mainRadius = (image.size - lineWidth) / 2
     let rowRadius = group.indices.map({mainRadius - lineWidth * CGFloat($0 * 2)})
-    var startAngle = asin(self.image.size * RCConstants.dotSizeScale / mainRadius)
+    var startAngle = asin(image.size * RCConstants.dotSizeScale / mainRadius)
     let distancePerBit = (CGFloat.pi / 2 - startAngle * 2) / CGFloat(RCConstants.level1BitesCount)
-    let center = CGPoint(x: self.image.size / 2, y: self.image.size / 2)
+    let center = CGPoint(x: image.size / 2, y: image.size / 2)
     startAngle += angle
     zip(rowRadius, group).forEach {
       let rowBitsGroup = $0.1

@@ -186,7 +186,7 @@ extension RCCameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     let lumaCopy = UnsafeMutableRawPointer.allocate(byteCount: bytesPerRow * size, alignment: MemoryLayout<UInt8>.alignment)
     lumaCopy.copyMemory(from: lumaBaseAddress!, byteCount: bytesPerRow * size)
     let bufferData = UnsafeMutableBufferPointer<UInt8>(start: lumaCopy.bindMemory(to: UInt8.self, capacity: size * bytesPerRow), count: size * bytesPerRow)
-    if let message = try? coder.decode(bufferData, size: size) {
+    if let message = try? coder.decode(buffer: bufferData, size: size) {
       DispatchQueue.main.async {[weak self] in
         guard let weakSelf = self else { return }
         weakSelf.dismiss(animated: true) {

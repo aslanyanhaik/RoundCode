@@ -22,7 +22,7 @@
 
 import Foundation
 
-public class RCCoderConfiguration {
+public final class RCCoderConfiguration {
   
   public let maxMessageCount: Int
   public let symbols: [Character]

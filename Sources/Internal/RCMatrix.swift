@@ -29,20 +29,28 @@ final class RCMatrix<T: Numeric & Hashable> {
   var columns: Int {
     data.count / rows
   }
-  var data: [T]
+  var data: UnsafeMutableBufferPointer<T>
   
   //MARK: Inits
   init(size: Int) {
     self.rows = size
-    data = [T](repeating: 0, count: rows * rows)
+    data = UnsafeMutableBufferPointer<T>.allocate(capacity: rows * rows)
+    data.initialize(repeating: 0)
+    defer {
+      data.deallocate()
+    }
   }
   
   init(rows: Int, columns: Int) {
     self.rows = rows
-    data = [T](repeating: 0, count: rows * columns)
+    data = UnsafeMutableBufferPointer<T>.allocate(capacity: rows * columns)
+    data.initialize(repeating: 0)
+    defer {
+      data.deallocate()
+    }
   }
   
-  init(columns: Int, items: [T]) {
+  init(columns: Int, items: UnsafeMutableBufferPointer<T>) {
     guard items.count % columns == 0 else {
       fatalError("number of columns are not matching")
     }
@@ -50,7 +58,7 @@ final class RCMatrix<T: Numeric & Hashable> {
     self.data = items
   }
   
-  init(rows: Int, items: [T]) {
+  init(rows: Int, items: UnsafeMutableBufferPointer<T>) {
     guard items.count % rows == 0 else {
       fatalError("number of rows are not matching")
     }
@@ -69,82 +77,84 @@ extension RCMatrix {
   
   subscript(column: Int, row: Int) -> T {
     get {
-      return data.withUnsafeBufferPointer { buffer in
-        return buffer[self.rows * row + column]
-      }
+      return data[self.rows * row + column]
     }
     set {
-      data.withUnsafeMutableBufferPointer { buffer in
-        buffer[self.rows * row + column] = newValue
-      }
+      data[self.rows * row + column] = newValue
     }
   }
   
-  func row(for index: Int) -> [T] {
-    return data.withUnsafeBufferPointer { buffer in
-      let range = (columns * index)..<(columns * (index + 1))
-      return Array(buffer[range])
+  func row(for index: Int) -> Slice<UnsafeMutableBufferPointer<T>> {
+    let range = (columns * index)..<(columns * (index + 1))
+    return data[range]
+  }
+  
+  func column(for index: Int) -> UnsafeMutableBufferPointer<T> {
+    let indexes = stride(from: 0, to: data.count, by: self.columns).map({$0})
+    let pointer = UnsafeMutableBufferPointer<T>.allocate(capacity: indexes.count)
+    indexes.forEach { rowIndex in
+      pointer[index] = data[index + rowIndex]
+    }
+    defer {
+      pointer.deallocate()
+    }
+    return pointer
+  }
+  
+  func rowsData() -> [Slice<UnsafeMutableBufferPointer<T>>] {
+    return stride(from: 0, to: data.count, by: self.columns).map { index in
+      data[index ..< min(index + self.columns, data.count)]
     }
   }
   
-  func column(for index: Int) -> [T] {
-    return stride(from: 0, to: data.count, by: self.columns).map { rowIndex in
-      data.withUnsafeBufferPointer { buffer in
-        return buffer[index + rowIndex]
+  func columnsData() -> [UnsafeMutableBufferPointer<T>] {
+    let pointers =  (0..<self.columns).map({$0}).map { index -> UnsafeMutableBufferPointer<T> in
+      let indexes = stride(from: 0, to: data.count, by: self.columns).map({$0})
+      let pointer = UnsafeMutableBufferPointer<T>.allocate(capacity: indexes.count)
+      indexes.forEach { rowIndex in
+        pointer[index] = data[index + rowIndex]
       }
+      return pointer
     }
-  }
-  
-  func rowsData() -> [[T]] {
-    return data.withUnsafeBufferPointer { buffer in
-      stride(from: 0, to: data.count, by: self.columns).map { index in
-        Array(buffer[index ..< min(index + self.columns, data.count)])
-      }
+    defer {
+      pointers.forEach({$0.deallocate()})
     }
-  }
-  
-  func columnsData() -> [[T]] {
-    return data.withUnsafeBufferPointer { buffer in
-      let rowIndexes = (0..<self.columns).map({$0})
-      return rowIndexes.map { index in
-        return stride(from: 0, to: data.count, by: self.columns).map { rowIndex in
-          return buffer[index + rowIndex]
-        }
-      }
-    }
+    return pointers
   }
   
   func swap(row firstRow: Int, with lastRow: Int) {
     var rowsData = self.rowsData()
     rowsData.swapAt(firstRow, lastRow)
-    self.data = rowsData.flatMap({$0})
-  }
-  
-  func augment(by matrix: RCMatrix) -> RCMatrix {
-    guard self.rows == matrix.rows else {
-      fatalError("Matrices don't have the same number of rows")
+    rowsData.flatMap({$0}).enumerated().forEach { value in
+      self.data[value.offset] = value.element
     }
-    let data = zip(self.rowsData(), matrix.rowsData()).map({$0.0 + $0.1}).flatMap({$0})
-    return RCMatrix(rows: self.rows, items: data)
   }
   
-  func subMatrix(rowMin: Int, columnMin: Int, rowMax: Int, columnMax: Int) -> RCMatrix {
-    let data = rowsData()[rowMin...rowMax].map({$0[columnMin...columnMax]}).flatMap({$0})
-    return RCMatrix(rows: (rowMin...rowMax).count, items: data)
-  }
+//  func augment(by matrix: RCMatrix) -> RCMatrix {
+//    guard self.rows == matrix.rows else {
+//      fatalError("Matrices don't have the same number of rows")
+//    }
+//    let data = zip(self.rowsData(), matrix.rowsData()).map({$0.0 + $0.1}).flatMap({$0})
+//    return RCMatrix(rows: self.rows, items: data)
+//  }
+
+//  func subMatrix(rowMin: Int, columnMin: Int, rowMax: Int, columnMax: Int) -> RCMatrix {
+//    let data = rowsData()[rowMin...rowMax].map({$0[columnMin...columnMax]}).flatMap({$0})
+//    return RCMatrix(rows: (rowMin...rowMax).count, items: data)
+//  }
 }
 
 extension RCMatrix where T == Float {
-  func multiply(by matrix: RCMatrix) -> RCMatrix {
-    guard self.columns == matrix.rows else {
-      fatalError("Cannot subract matrices of different dimensions")
-    }
-    var result = [T](repeating: 0, count: self.rows * matrix.columns)
-    vDSP_mmul(self.data, 1, matrix.data, 1, &result, 1, UInt(self.rows), UInt(matrix.columns), UInt(self.columns))
-    return RCMatrix(rows: self.rows, items: result)
-  }
+//  func multiply(by matrix: RCMatrix) -> RCMatrix {
+//    guard self.columns == matrix.rows else {
+//      fatalError("Cannot subract matrices of different dimensions")
+//    }
+//    var result = [T](repeating: 0, count: self.rows * matrix.columns)
+//    vDSP_mmul(self.data.baseAddress!, 1, matrix.data.baseAddress!, 1, &result, 1, UInt(self.rows), UInt(matrix.columns), UInt(self.columns))
+//    return RCMatrix(rows: self.rows, items: result)
+//  }
   
-  func inverted() -> RCMatrix {
+  func invert() {
     guard rows == columns else {
       fatalError("Only square matrices can be inverted")
     }
@@ -160,22 +170,33 @@ extension RCMatrix where T == Float {
     guard error == 0 else {
       fatalError("error inverting matrix: Error(\(error))")
     }
-    return RCMatrix(rows: self.rows, items: invertedData.map({T($0)}))
+    invertedData.enumerated().forEach { value in
+      self.data[value.offset] = Float(value.element)
+    }
   }
 }
 
 //MARK: Equatable
 extension RCMatrix: Equatable {
   static func == (lhs: RCMatrix, rhs: RCMatrix) -> Bool {
-    return lhs.data == rhs.data
+    guard lhs.rows == rhs.rows, lhs.columns == rhs.columns else { return false }
+    for index in 0..<lhs.data.count {
+      if lhs.data[index] != rhs.data[index] {
+        return false
+      }
+    }
+    return true
   }
 }
 
 //MARK: CustomStringConvertible
 extension RCMatrix: CustomStringConvertible {
   var description: String {
-    var message = "columns: \(columns), rows: \(rows)"
-    rowsData().forEach({message += "\n \($0.description)"})
+    var message = "columns: \(columns), rows: \(rows) \n"
+    rowsData().forEach { row in
+      row.forEach({message += " \($0)"})
+      message += "\n"
+    }
     return message
   }
 }

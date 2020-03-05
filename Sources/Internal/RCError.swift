@@ -20,26 +20,27 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-import UIKit
+import Foundation
 
-public struct RCImage {
-  
-  public var message: String
-  public var size = CGFloat(300)
-  public var tintColors: [UIColor] = [.orange, .gray]//[.orange, .magenta]
-  public var attachmentImage: UIImage?
-  public var isTransparent = false
-  public var gradientType = GradientType.linear(angle: CGFloat.pi / 2)
-  public var contentInsets = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
-  
-  public init(message: String) {
-    self.message = message 
-  }
-}
+enum RCError: String, LocalizedError {
+  case invalidCharacter
+  case longText
+  case wrongConfiguration
+  case decoding
+  case wrongImageSize
 
-public extension RCImage {
-  enum GradientType {
-    case linear(angle: CGFloat)
-    case radial
+  var errorDescription: String? {
+    switch self {
+      case .invalidCharacter:
+        return "message contains character which is not in characterSet"
+      case .longText:
+        return "message characters count exceeds configuration maximum characters"
+      case .wrongConfiguration:
+        return "Error decoding. The configuration is not matching to encoded image"
+      case .decoding:
+        return "Error decoding."
+      case .wrongImageSize:
+        return "Error decoding. Image size must be a square"
+    }
   }
 }
