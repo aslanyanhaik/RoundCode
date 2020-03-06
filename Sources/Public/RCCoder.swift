@@ -43,11 +43,9 @@ public extension RCCoder {
   
   func decode(_ image: UIImage) throws -> String {
     guard image.size.width == image.size.height else { throw RCError.wrongImageSize }
-    //make grayscale
-    //make CVPixelBuffer
-    //decode image
-    //decode bits
-    return "message"
+    let bits = try imageDecoder.decode(image)
+    let message = try bitCoder.decode(bits)
+    return message
   }
   
   func validate(_ text: String) -> Bool {
