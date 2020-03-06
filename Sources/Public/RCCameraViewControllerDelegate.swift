@@ -24,7 +24,7 @@ import Foundation
 
 public protocol RCCameraViewControllerDelegate: class {
   
-  func cameraViewController(_ controller: RCCameraViewController, didFinishPickingScanning data: String)
+  func cameraViewController(_ controller: RCCameraViewController, didFinishPickingScanning message: String)
   func cameraViewControllerDidCancel(_ controller: RCCameraViewController)
   
 }
