@@ -56,21 +56,18 @@ final class RCImageDecoder {
       let point = try scanControlPoint(region: (sector.x, sector.y, sectionSize), data: data, side: sector.side)
       points.append(point)
     }
-    print(points)
-    let image = try fixPerspective(pointer, points: points, size: size)
+    let image = try fixPerspective(pointer, points: points.map({CIVector(x: $0.x, y: CGFloat(size) - $0.y)}), size: size)
     let bits = decode(image)
     return bits
   }
   
   func decode(_ image: UIImage) throws -> [RCBit] {
     let size = image.cgImage!.height
-    var pixelData = UnsafeMutableRawPointer.allocate(byteCount: size * size, alignment: MemoryLayout<UInt8>.alignment)
+    let pixelData = UnsafeMutableRawPointer.allocate(byteCount: size * size, alignment: MemoryLayout<UInt8>.alignment)
     let context = CGContext(data: pixelData, width: size, height: size, bitsPerComponent: 8, bytesPerRow: size, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
     context?.draw(image.cgImage!, in: CGRect(origin: .zero, size: CGSize(width: size, height: size)))
-    defer {
-      pixelData.deallocate()
-    }
     let bits = try process(pointer: pixelData.assumingMemoryBound(to: UInt8.self), size: size)
+    pixelData.deallocate()
     return bits
   }
 }
@@ -96,7 +93,6 @@ extension RCImageDecoder {
       count += 1
     }
     let pixelPatternsBuffer = UnsafeMutableBufferPointer(start: UnsafeMutableRawPointer(mutating: pixelPatterns).assumingMemoryBound(to: RCPixelPattern.self), count: pixelPatterns.count)
-    //    NotificationCenter.default.post(name: NSNotification.Name.init("random"), object: pixelPatterns)
     guard pixelPatternsBuffer.count >= 5 else { throw RCError.decoding }
     var countIndex = 0
     while countIndex < pixelPatternsBuffer.count - 5 {
@@ -144,44 +140,38 @@ extension RCImageDecoder {
     }
   }
   
-  private func fixPerspective(_ data: UnsafeMutablePointer<UInt8>, points: [CGPoint], size: Int) throws -> CGImage {
-    let data = CFDataCreate(nil, data, size * size)!
-    let provider = CGDataProvider(data: data)!
-    let cgImage = CGImage(width: size, height: size, bitsPerComponent: 8, bitsPerPixel: 8, bytesPerRow: size, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGBitmapInfo(rawValue: 0), provider: provider, decode: nil, shouldInterpolate: true, intent: CGColorRenderingIntent.defaultIntent)!
-    
-    
-    
-    
-    //    let path = UIBezierPath()
-    //    path.move(to: points[0])
-    //    path.addLine(to: points[1])
-    //    path.addLine(to: points[2])
-    //    path.addLine(to: points[3])
-    //    path.close()
-    //    let originalBounds = path.bounds
-    //    path.apply(CGAffineTransform(scaleX: sqrt(2.0), y: sqrt(2.0)))
-    //    let scaledBounds = path.bounds
-    //    path.apply(CGAffineTransform(translationX: (originalBounds.width - scaledBounds.width) / 2 , y: (originalBounds.height - scaledBounds.height) / 2))
-    //    let vectors = points.map{CGVector(dx: $0.x, dy: $0.y)}
-    //    let image = CIImage() //.image(from: data)
-    //    let perspectiveFilter = CIFilter(name: "CIPerspectiveCorrection")!
-    //    perspectiveFilter.setValue(image, forKey: "inputImage")
-    //    perspectiveFilter.setValue(vectors[0], forKey: "inputTopLeft")
-    //    perspectiveFilter.setValue(vectors[1], forKey: "inputTopRight")
-    //    perspectiveFilter.setValue(vectors[2], forKey: "inputBottomRight")
-    //    perspectiveFilter.setValue(vectors[3], forKey: "inputBottomLeft")
-    //    let transform = CGAffineTransform(translationX: image.extent.midX, y: image.extent.midY).rotated(by: CGFloat.pi / 4).translatedBy(x: -image.extent.midX, y: -image.extent.midY)
-    //    let correctedImage = perspectiveFilter.outputImage!.transformed(by: transform)
-    //    let cgImage = context.createCGImage(correctedImage, from: CGRect(x: 0, y: 0, width: data.columns, height: data.columns))!
-    //    var pixelValues = UnsafeMutableRawPointer.allocate(byteCount: cgImage.width * cgImage.height, alignment: MemoryLayout<UInt8>.alignment)
-    //    let colorSpace = CGColorSpaceCreateDeviceGray()
-    //    let contextRef = CGContext(data: &pixelValues, width: cgImage.width, height: cgImage.height, bitsPerComponent: 8, bytesPerRow: cgImage.width, space: colorSpace, bitmapInfo: 0)
-    //    contextRef?.draw(cgImage, in: CGRect(origin: .zero, size: CGSize(width: cgImage.width, height: cgImage.height)))
-    //    data.data.deallocate()
-    //    data.data = UnsafeMutableBufferPointer<UInt8>(start: pixelValues.bindMemory(to: UInt8.self, capacity: data.columns * data.rows), count: data.columns * data.rows)
-    //    return data
-    throw RCError.decoding
-    //    return UIImage().cgImage!
+  private func fixPerspective(_ data: UnsafeMutablePointer<UInt8>, points: [CIVector], size: Int) throws -> CGImage {
+    guard
+      let data = CFDataCreate(nil, data, size * size),
+      let provider = CGDataProvider(data: data),
+      let cgImage = CGImage(width: size, height: size, bitsPerComponent: 8, bitsPerPixel: 8, bytesPerRow: size, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGBitmapInfo(rawValue: 0), provider: provider, decode: nil, shouldInterpolate: true, intent: CGColorRenderingIntent.defaultIntent) else {
+        throw RCError.decoding
+    }
+    var image = CIImage(cgImage: cgImage, options: [.colorSpace: CGColorSpaceCreateDeviceGray()])
+    let transformFilter = CIFilter(name: "CIAffineTransform")!
+    transformFilter.setValue(image, forKey: "inputImage")
+    transformFilter.setValue(CGAffineTransform(rotationAngle: CGFloat.pi / 4), forKey: "inputTransform")
+    image = transformFilter.outputImage!
+    let translation = CGAffineTransform(translationX: -image.extent.origin.x, y: -image.extent.origin.y)
+    transformFilter.setValue(image, forKey: "inputImage")
+    transformFilter.setValue(translation, forKey: "inputTransform")
+    image = transformFilter.outputImage!
+    transformFilter.setValue(image, forKey: "inputImage")
+    transformFilter.setValue(CGAffineTransform(scaleX: 1 / sqrt(2), y: 1 / sqrt(2)), forKey: "inputTransform")
+    image = transformFilter.outputImage!
+    let perspectiveFilter = CIFilter(name: "CIPerspectiveCorrection")!
+    perspectiveFilter.setValue(image, forKey: "inputImage")
+    perspectiveFilter.setValue(points[0], forKey: "inputTopLeft")
+    perspectiveFilter.setValue(points[1], forKey: "inputTopRight")
+    perspectiveFilter.setValue(points[2], forKey: "inputBottomRight")
+    perspectiveFilter.setValue(points[3], forKey: "inputBottomLeft")
+    image = perspectiveFilter.outputImage!
+    let transform = CGAffineTransform.init(scaleX: 1, y: image.extent.width / image.extent.height)
+    transformFilter.setValue(image, forKey: "inputImage")
+    transformFilter.setValue(transform, forKey: "inputTransform")
+    image = transformFilter.outputImage!
+    guard let renderedImage = context.createCGImage(image, from: image.extent) else { throw RCError.decoding }
+    return renderedImage
   }
   
   private func decode(_ image: CGImage) -> [RCBit] {
@@ -209,8 +199,9 @@ extension RCImageDecoder {
         }
       }
     }
+    let bits = points.map { data[Int($0.x), Int($0.y)] > 200 ? RCBit.zero : RCBit.one }
     pixelData.deallocate()
-    return points.map { data[Int($0.x), Int($0.y)] > 200 ? RCBit.zero : RCBit.one }
+    return bits
   }
 }
 
