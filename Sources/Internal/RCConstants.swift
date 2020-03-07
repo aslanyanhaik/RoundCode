@@ -30,6 +30,7 @@ struct RCConstants {
   static let imageScale: CGFloat = 0.8
   static let dotSizeScale: CGFloat = 0.08
   static let dotPatterns: [CGFloat] = [6, 4, 2]
+  static let dotPointRange = (Float(1.6)...Float(2.2))
   static let emptySymbols: [Character] = ["\u{0540}", "\u{0531}"]
   
 }
