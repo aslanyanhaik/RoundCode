@@ -141,13 +141,8 @@ extension RCImageDecoder {
   }
   
   private func fixPerspective(_ data: UnsafeMutablePointer<UInt8>, points: [CIVector], size: Int) throws -> CGImage {
-    guard
-      let data = CFDataCreate(nil, data, size * size),
-      let provider = CGDataProvider(data: data),
-      let cgImage = CGImage(width: size, height: size, bitsPerComponent: 8, bitsPerPixel: 8, bytesPerRow: size, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGBitmapInfo(rawValue: 0), provider: provider, decode: nil, shouldInterpolate: true, intent: CGColorRenderingIntent.defaultIntent) else {
-        throw RCError.decoding
-    }
-    var image = CIImage(cgImage: cgImage, options: [.colorSpace: CGColorSpaceCreateDeviceGray()])
+    let imageData = Data(bytes: UnsafeRawPointer(data), count: size * size)
+    var image = CIImage(bitmapData: imageData, bytesPerRow: size, size: CGSize(width: size, height: size), format: .L8, colorSpace: CGColorSpaceCreateDeviceGray())
     let transformFilter = CIFilter(name: "CIAffineTransform")!
     transformFilter.setValue(image, forKey: "inputImage")
     transformFilter.setValue(CGAffineTransform(rotationAngle: CGFloat.pi / 4), forKey: "inputTransform")
@@ -166,11 +161,8 @@ extension RCImageDecoder {
     perspectiveFilter.setValue(points[2], forKey: "inputBottomRight")
     perspectiveFilter.setValue(points[3], forKey: "inputBottomLeft")
     image = perspectiveFilter.outputImage!
-    let transform = CGAffineTransform.init(scaleX: 1, y: image.extent.width / image.extent.height)
-    transformFilter.setValue(image, forKey: "inputImage")
-    transformFilter.setValue(transform, forKey: "inputTransform")
-    image = transformFilter.outputImage!
-    guard let renderedImage = context.createCGImage(image, from: image.extent) else { throw RCError.decoding }
+    let newSize = min(image.extent.width, image.extent.height)
+    guard let renderedImage = context.createCGImage(image, from: CGRect(origin: .zero, size: CGSize(width: newSize, height: newSize))) else { throw RCError.decoding }
     return renderedImage
   }
   
