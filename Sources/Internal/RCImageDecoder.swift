@@ -21,13 +21,15 @@
 //  SOFTWARE.
 
 import UIKit
-import CoreImage
 
 final class RCImageDecoder {
-  
-  private var context = CIContext()
-  
-  func process(pointer: UnsafeMutablePointer<UInt8>, size: Int) throws -> [RCBit] {
+
+  var size = 0
+
+}
+
+extension RCImageDecoder {
+  func process(pointer: UnsafeMutablePointer<UInt8>) throws -> [RCBit] {
     let bufferData = UnsafeMutableBufferPointer<UInt8>(start: pointer, count: size * size)
     let data = RCMatrix<UInt8>(rows: size, items: bufferData)
     let sectionSize = size / 5
@@ -56,17 +58,17 @@ final class RCImageDecoder {
       let point = try scanControlPoint(region: (sector.x, sector.y, sectionSize), data: data, side: sector.side)
       points.append(point)
     }
-    let image = try fixPerspective(pointer, points: points.map({CIVector(x: $0.x, y: CGFloat(size) - $0.y)}), size: size)
+    let image = try fixPerspective(pointer, points: points)
     let bits = decode(image)
     return bits
   }
   
-  func decode(_ image: UIImage) throws -> [RCBit] {
-    let size = image.cgImage!.height
+  func decode(_ image: UIImage, size: Int) throws -> [RCBit] {
+    self.size = size
     let pixelData = UnsafeMutableRawPointer.allocate(byteCount: size * size, alignment: MemoryLayout<UInt8>.alignment)
-    let context = CGContext(data: pixelData, width: size, height: size, bitsPerComponent: 8, bytesPerRow: size, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
+    let context = generateContext(data: pixelData)
     context?.draw(image.cgImage!, in: CGRect(origin: .zero, size: CGSize(width: size, height: size)))
-    let bits = try process(pointer: pixelData.assumingMemoryBound(to: UInt8.self), size: size)
+    let bits = try process(pointer: pixelData.assumingMemoryBound(to: UInt8.self))
     pixelData.deallocate()
     return bits
   }
@@ -75,14 +77,14 @@ final class RCImageDecoder {
 extension RCImageDecoder {
   private func scanControlPoint(region: (x: Int, y: Int, size: Int), data: RCMatrix<UInt8>, side: Side) throws -> CGPoint {
     var points = [CGPoint]()
-    var lastPattern = RCPixelPattern(bit: data[region.x, region.y] > 180 ? RCBit.zero : RCBit.one, row: region.y, column: region.x, count: 0)
+    var lastPattern = RCPixelPattern(bit: data[region.x, region.y] > RCConstants.pixelThreshold ? RCBit.zero : RCBit.one, row: region.y, column: region.x, count: 0)
     var pixelPatterns = [lastPattern]
     var count = 0
     let maxSize = region.size * region.size
     while count < maxSize {
       let rowIndex = count / region.size + region.y
       let columnIndex = count % region.size + region.x
-      let bit = data[columnIndex, rowIndex] > 180 ? RCBit.zero : RCBit.one
+      let bit = data[columnIndex, rowIndex] > RCConstants.pixelThreshold ? RCBit.zero : RCBit.one
       if lastPattern.row == rowIndex, lastPattern.bit == bit {
         lastPattern.count += 1
         pixelPatterns[pixelPatterns.count - 1] = lastPattern
@@ -140,35 +142,35 @@ extension RCImageDecoder {
     }
   }
   
-  private func fixPerspective(_ data: UnsafeMutablePointer<UInt8>, points: [CIVector], size: Int) throws -> CGImage {
-    let imageData = Data(bytes: UnsafeRawPointer(data), count: size * size)
-    var image = CIImage(bitmapData: imageData, bytesPerRow: size, size: CGSize(width: size, height: size), format: .L8, colorSpace: CGColorSpaceCreateDeviceGray())
-    let transformFilter = CIFilter(name: "CIAffineTransform")!
-    transformFilter.setValue(image, forKey: "inputImage")
-    transformFilter.setValue(CGAffineTransform(rotationAngle: CGFloat.pi / 4), forKey: "inputTransform")
-    image = transformFilter.outputImage!
-    let translation = CGAffineTransform(translationX: -image.extent.origin.x, y: -image.extent.origin.y)
-    transformFilter.setValue(image, forKey: "inputImage")
-    transformFilter.setValue(translation, forKey: "inputTransform")
-    image = transformFilter.outputImage!
-    transformFilter.setValue(image, forKey: "inputImage")
-    transformFilter.setValue(CGAffineTransform(scaleX: 1 / sqrt(2), y: 1 / sqrt(2)), forKey: "inputTransform")
-    image = transformFilter.outputImage!
-    let perspectiveFilter = CIFilter(name: "CIPerspectiveCorrection")!
-    perspectiveFilter.setValue(image, forKey: "inputImage")
-    perspectiveFilter.setValue(points[0], forKey: "inputTopLeft")
-    perspectiveFilter.setValue(points[1], forKey: "inputTopRight")
-    perspectiveFilter.setValue(points[2], forKey: "inputBottomRight")
-    perspectiveFilter.setValue(points[3], forKey: "inputBottomLeft")
-    image = perspectiveFilter.outputImage!
-    let newSize = min(image.extent.width, image.extent.height)
-    guard let renderedImage = context.createCGImage(image, from: CGRect(origin: .zero, size: CGSize(width: newSize, height: newSize))) else { throw RCError.decoding }
-    return renderedImage
+  private func fixPerspective(_ data: UnsafeMutablePointer<UInt8>, points: [CGPoint]) throws -> CGImage {
+    guard let context = generateContext(data: data), let cgImage = context.makeImage() else {
+      throw RCError.decoding
+    }
+    let image = UIGraphicsImageRenderer(size: CGSize(width: CGFloat(size), height: CGFloat(size))).image { context in
+      let baseView = UIView(frame: context.format.bounds)
+      let imageView = UIImageView(frame: context.format.bounds)
+      baseView.addSubview(imageView)
+      imageView.image = UIImage(cgImage: cgImage)
+      imageView.layer.anchorPoint = .zero
+      imageView.layer.frame = context.format.bounds
+      let perspective = RCTransformation(points)
+      let destination = RCTransformation([CGPoint(x: context.format.bounds.minX, y: context.format.bounds.midY),
+                                     CGPoint(x: context.format.bounds.midX, y: context.format.bounds.minY),
+                                     CGPoint(x: context.format.bounds.midX, y: context.format.bounds.maxY),
+                                     CGPoint(x: context.format.bounds.maxX, y: context.format.bounds.midY)])
+      let transform = perspective.perspectiveTransform(to: destination)
+      imageView.transform3D = transform
+      baseView.drawHierarchy(in: context.format.bounds, afterScreenUpdates: true)
+    }
+    guard let renderImage = image.cgImage else {
+      throw RCError.decoding
+    }
+    return renderImage
   }
   
   private func decode(_ image: CGImage) -> [RCBit] {
     let pixelData = UnsafeMutableRawPointer.allocate(byteCount: image.width * image.height, alignment: MemoryLayout<UInt8>.alignment)
-    let context = CGContext(data: pixelData, width: image.width, height: image.height, bitsPerComponent: 8, bytesPerRow: image.width, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
+    let context = generateContext(data: pixelData)
     context?.draw(image, in: CGRect(origin: .zero, size: CGSize(width: image.width, height: image.height)))
     let buffer = UnsafeMutableBufferPointer<UInt8>(start: pixelData.assumingMemoryBound(to: UInt8.self), count: image.width * image.height)
     let data = RCMatrix(rows: image.height, items: buffer)
@@ -198,6 +200,15 @@ extension RCImageDecoder {
 }
 
 extension RCImageDecoder {
+  private func generateContext(data: UnsafeMutableRawPointer? = nil) -> CGContext? {
+    return  CGContext(data: data, width: self.size, height: self.size, bitsPerComponent: 8, bytesPerRow: self.size, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
+  }
+  
+  
+  
+}
+
+extension RCImageDecoder {
   
   struct RCPixelPattern: CustomStringConvertible {
     
@@ -214,7 +225,7 @@ extension RCImageDecoder {
   enum Side: CaseIterable {
     case left
     case top
-    case right
     case bottom
+    case right
   }
 }

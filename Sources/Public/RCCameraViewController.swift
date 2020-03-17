@@ -52,13 +52,6 @@ public final class RCCameraViewController: UIViewController, UIImagePickerContro
     cameraView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: 0).isActive = true
     return cameraView
   }()
-  lazy var timeLabel: UILabel = {
-    let label = UILabel.init(frame: CGRect.init(x: 20, y: 20, width: 100, height: 30))
-    label.textColor = .white
-    self.view.addSubview(label)
-    return label
-  }()
-  
   
   //MARK: Inits
   public required init?(coder: NSCoder) {
@@ -153,11 +146,12 @@ extension RCCameraViewController {
     guard let captureDevice = AVCaptureDevice.default(for: .video) else { return }
     do {
       captureSession.sessionPreset = .hd1280x720
+      coder.set(size: 720)
       let input = try AVCaptureDeviceInput(device: captureDevice)
       input.device.activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: 30)
       captureSession.addInput(input)
       let videoOutput = AVCaptureVideoDataOutput()
-      videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue.global(qos: .background))
+      videoOutput.setSampleBufferDelegate(self, queue: .main)
       videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: NSNumber(value: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)]
       captureSession.addOutput(videoOutput)
     } catch {
@@ -182,7 +176,6 @@ extension RCCameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     connection.videoOrientation = .portrait
     guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
     CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
-    let date = Date()
     let bytesPerRow = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0)
     let bufferHeight = CVPixelBufferGetHeightOfPlane(pixelBuffer, 0)
     let bufferWidth = CVPixelBufferGetWidthOfPlane(pixelBuffer, 0)
@@ -191,16 +184,9 @@ extension RCCameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     let lumaBaseAddress = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0)?.advanced(by: bytesPerRow * origin)
     let lumaCopy = UnsafeMutableRawPointer.allocate(byteCount: bytesPerRow * size, alignment: MemoryLayout<UInt8>.alignment)
     lumaCopy.copyMemory(from: lumaBaseAddress!, byteCount: bytesPerRow * size)
-    if let message = try? coder.decode(buffer: lumaCopy.assumingMemoryBound(to: UInt8.self), size: size) {
-      DispatchQueue.main.async {[weak self] in
-        guard let weakSelf = self else { return }
-        weakSelf.dismiss(animated: true) {
-          weakSelf.delegate?.cameraViewController(weakSelf, didFinishPickingScanning: message)
-        }
-      }
-    }
-    DispatchQueue.main.async {
-      self.timeLabel.text = "\((1 / Date().timeIntervalSince(date)).rounded())"
+    if let message = try? coder.decode(buffer: lumaCopy.assumingMemoryBound(to: UInt8.self)) {
+      delegate?.cameraViewController(self, didFinishPickingScanning: message)
+      dismiss(animated: true)
     }
     lumaCopy.deallocate()
     CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)

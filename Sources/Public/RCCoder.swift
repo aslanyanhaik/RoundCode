@@ -43,7 +43,7 @@ public extension RCCoder {
   
   func decode(_ image: UIImage) throws -> String {
     guard image.size.width == image.size.height else { throw RCError.wrongImageSize }
-    let bits = try imageDecoder.decode(image)
+    let bits = try imageDecoder.decode(image, size: image.cgImage!.height)
     let message = try bitCoder.decode(bits)
     return message
   }
@@ -55,9 +55,13 @@ public extension RCCoder {
 
 extension RCCoder {
   
-  func decode(buffer: UnsafeMutablePointer<UInt8>, size: Int) throws -> String {
-    let bits = try imageDecoder.process(pointer: buffer, size: size)
+  func decode(buffer: UnsafeMutablePointer<UInt8>) throws -> String {
+    let bits = try imageDecoder.process(pointer: buffer)
     let message = try bitCoder.decode(bits)
     return message
+  }
+  
+  func set(size: Int) {
+    imageDecoder.size = size
   }
 }
