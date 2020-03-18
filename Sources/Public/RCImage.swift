@@ -26,7 +26,7 @@ public struct RCImage {
   
   public var message: String
   public var size = CGFloat(300)
-  public var tintColors: [UIColor] = [.orange, .gray]//[.orange, .magenta]
+  public var tintColors: [UIColor] = [.orange, .magenta]
   public var attachmentImage: UIImage?
   public var isTransparent = false
   public var gradientType = GradientType.linear(angle: CGFloat.pi / 2)

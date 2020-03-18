@@ -59,6 +59,7 @@ extension RCImageDecoder {
       points.append(point)
     }
     let image = try fixPerspective(pointer, points: points)
+    NotificationCenter.default.post(name: NSNotification.Name.init("image"), object: image)
     let bits = decode(image)
     return bits
   }
@@ -200,12 +201,9 @@ extension RCImageDecoder {
 }
 
 extension RCImageDecoder {
-  private func generateContext(data: UnsafeMutableRawPointer? = nil) -> CGContext? {
+  private func generateContext(data: UnsafeMutableRawPointer?) -> CGContext? {
     return  CGContext(data: data, width: self.size, height: self.size, bitsPerComponent: 8, bytesPerRow: self.size, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
   }
-  
-  
-  
 }
 
 extension RCImageDecoder {
