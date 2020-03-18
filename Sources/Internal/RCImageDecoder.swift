@@ -25,6 +25,7 @@ import UIKit
 final class RCImageDecoder {
 
   var size = 0
+  lazy var sectionSize = self.size / 5
 
 }
 
@@ -32,7 +33,6 @@ extension RCImageDecoder {
   func process(pointer: UnsafeMutablePointer<UInt8>) throws -> [RCBit] {
     let bufferData = UnsafeMutableBufferPointer<UInt8>(start: pointer, count: size * size)
     let data = RCMatrix<UInt8>(rows: size, items: bufferData)
-    let sectionSize = size / 5
     let sectors = Side.allCases.map { side -> (side: Side, x: Int, y: Int) in
       switch side {
         case .top:

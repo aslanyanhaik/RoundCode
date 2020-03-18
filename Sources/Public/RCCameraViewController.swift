@@ -103,6 +103,7 @@ extension RCCameraViewController {
     super.viewDidLayoutSubviews()
     configureMaskLayer()
     videoPreviewLayer?.frame = view.bounds
+    calculateScanArea()
   }
 }
 
@@ -147,6 +148,7 @@ extension RCCameraViewController {
     do {
       captureSession.sessionPreset = .hd1280x720
       coder.set(size: 720)
+      calculateScanArea()
       let input = try AVCaptureDeviceInput(device: captureDevice)
       input.device.activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: 30)
       captureSession.addInput(input)
@@ -157,6 +159,14 @@ extension RCCameraViewController {
     } catch {
       print(error.localizedDescription)
     }
+  }
+  
+  private func calculateScanArea() {
+    let actualWidth = view.frame.height / 16 * 9
+    var sideArea: CGFloat = min(view.bounds.width, view.bounds.height) * 0.9 * 0.2
+    sideArea += (actualWidth - min(view.bounds.width, view.bounds.height) * 0.9) / 2
+    let area = sideArea / min(view.bounds.width, view.bounds.height) * 720
+    coder.set(scanArea: Int(area))
   }
   
   private func configureVideoPreview(orientation: AVCaptureVideoOrientation = .portrait) {

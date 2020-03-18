@@ -64,4 +64,8 @@ extension RCCoder {
   func set(size: Int) {
     imageDecoder.size = size
   }
+  
+  func set(scanArea: Int) {
+    imageDecoder.sectionSize = scanArea
+  }
 }
