@@ -204,7 +204,8 @@ extension RCImageDecoder {
     guard let context = generateContext(data: data), let cgImage = context.makeImage() else {
       throw RCError.decoding
     }
-    let image = UIGraphicsImageRenderer(size: CGSize(width: CGFloat(size), height: CGFloat(size))).image { context in
+    let scale = UIScreen.main.scale
+    let image = UIGraphicsImageRenderer(size: CGSize(width: CGFloat(size) / scale, height: CGFloat(size) / scale)).image { context in
       let baseView = UIView(frame: context.format.bounds)
       let imageView = UIImageView(frame: context.format.bounds)
       baseView.addSubview(imageView)
