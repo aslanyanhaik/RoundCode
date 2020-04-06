@@ -25,7 +25,7 @@ import UIKit
 public final class RCCoder {
   
   public let configuration: RCCoderConfiguration
-  private lazy var imageDecoder = RCImageDecoder()
+  private lazy var imageDecoder = RCImageDecoder(size: 720)
   private lazy var imageEncoder = RCImageEncoder()
   private lazy var bitCoder = RCBitCoder(configuration: self.configuration)
   
@@ -66,6 +66,6 @@ extension RCCoder {
   }
   
   func set(scanArea: Int) {
-    imageDecoder.sectionSize = scanArea
+    imageDecoder.padding = scanArea
   }
 }
