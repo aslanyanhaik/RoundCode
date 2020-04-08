@@ -29,61 +29,62 @@ final class RCBitCoder {
   init(configuration: RCCoderConfiguration) {
     self.configuration = configuration
   }
-  
-  func encode(message: String) throws -> [[[RCBitGroup]]] {
-    guard message.trimmingCharacters(in: configuration.characterSet).isEmpty else {
+}
+
+extension RCBitCoder {
+  func encode(message: String) throws -> RCData {
+    var specialCharacters = RCConstants.emptyCharacters
+    specialCharacters.append(RCConstants.startingCharacter)
+    guard message.map({$0}).allSatisfy({configuration.characters.contains($0) && !specialCharacters.contains($0)}) else {
       throw RCError.invalidCharacter
     }
     guard message.count <= configuration.maxMessageCount else {
       throw RCError.longText
     }
-    let dataBytes = message.map({configuration.symbols.firstIndex(of: $0)!})
-    let emptyIndexes = configuration.emptySymbolsIndex()
-    var randomBytes = (0..<configuration.maxMessageCount).map({_ in emptyIndexes[Int.random(in: 0..<emptyIndexes.count)]})
-    randomBytes.insert(contentsOf: dataBytes, at: 0)
-    randomBytes = Array(randomBytes.prefix(configuration.maxMessageCount))
-    let encodedBits = randomBytes.map { byte -> [RCBit] in
+    var dataBytes = message.map({configuration.characters.firstIndex(of: $0)!})
+    dataBytes.insert(configuration.characters.firstIndex(of: RCConstants.startingCharacter)!, at: 0)
+    let emptyIndexes = RCConstants.emptyCharacters.map({configuration.characters.firstIndex(of: $0)!})
+    let randomBytes = (0..<configuration.maxMessageCount).map({_ in emptyIndexes[Int.random(in: 0..<emptyIndexes.count)]})
+    dataBytes.append(contentsOf: randomBytes)
+    dataBytes = Array(dataBytes.prefix(configuration.maxMessageCount))
+    let encodedBits = dataBytes.map { byte -> [RCBit] in
       var stringValue = String(repeating: "0", count: configuration.bitesPerSymbol)
       stringValue += String(byte, radix: 2)
       return stringValue.suffix(configuration.bitesPerSymbol).compactMap({RCBit($0)})
     }.flatMap({$0})
-    var totalBits = [RCBit](repeating: .zero, count: RCConstants.maxBites)
+    var totalBits = [RCBit](repeating: .zero, count: RCConstants.maxBitesPerSection * 3)
     totalBits.insert(contentsOf: encodedBits, at: 0)
-    totalBits = Array(totalBits.prefix(RCConstants.maxBites))
-    let bitChunks = [RCConstants.level1BitesCount, RCConstants.level2BitesCount, RCConstants.level3BitesCount].map { count in
-      return (0...3).map { _ -> [RCBit] in // 4 groups
-        let bitChunk = Array(totalBits.prefix(count))
-        totalBits = Array(totalBits.dropFirst(count))
-        return bitChunk
-      }
-    }
-    let bitGroups = zip(bitChunks[0], zip(bitChunks[1], bitChunks[2])).map {[$0.0, $0.1.0, $0.1.1]}.map { group in
-      group.map { row -> [RCBitGroup] in
-        var bitGroupRow = [RCBitGroup(bit: row[0], count: 0, offset: 0)]
-        row.enumerated().forEach { value  in
-          bitGroupRow.last!.bit == value.element ? bitGroupRow.last!.count += 1 : bitGroupRow.append(RCBitGroup(bit: value.element, count: 1, offset: value.offset))
-        }
-        return bitGroupRow
-      }
-    }
-    return bitGroups
+    totalBits = Array(totalBits.prefix(RCConstants.maxBitesPerSection * 3))
+    //reed solomon
+    return RCData(totalBits)
   }
+  
   
   func decode(_ bits: [RCBit]) throws -> String {
     guard bits.contains(.one) else { return "" }
-    let emptyIndexes = configuration.emptySymbolsIndex()
-    let bitChunks = stride(from: 0, to: bits.count, by: configuration.bitesPerSymbol).map {
+    //decode bits to indexes
+    let bytes = stride(from: 0, to: bits.count, by: configuration.bitesPerSymbol).map {
       Array(bits[$0 ..< min($0 + configuration.bitesPerSymbol, bits.count)])
     }
-    var indexes = bitChunks.map({ bits in
+    var indexes = bytes.map({ bits in
       return bits.reduce(0) { accumulated, current in
         accumulated << 1 | current.rawValue
       }
     })
-    indexes = Array(indexes.prefix(configuration.maxMessageCount)).filter({!emptyIndexes.contains($0)})
-    guard (indexes.max() ?? 0) <= configuration.symbols.count else {
+    var sectionIndexes = indexes.chunked(into: 4)
+    let startingIndex = configuration.characters.firstIndex(of: RCConstants.startingCharacter)!
+    guard let firstSectionIndex = sectionIndexes.firstIndex(where: {$0.first == startingIndex}) else {
+      throw RCError.decoding
+    }
+    let previousSections = Array(sectionIndexes.prefix(firstSectionIndex))
+    sectionIndexes = Array(sectionIndexes.dropFirst(firstSectionIndex))
+    sectionIndexes.append(contentsOf: previousSections)
+    //reed solomon check
+    let emptyIndexes = RCConstants.emptyCharacters.map({configuration.characters.firstIndex(of: $0)!})
+    indexes = Array(sectionIndexes.flatMap({$0}).prefix(configuration.maxMessageCount)).filter({!emptyIndexes.contains($0)})
+    guard (indexes.max() ?? 0) <= configuration.characters.count else {
       throw RCError.wrongConfiguration
     }
-    return String(indexes.compactMap({configuration.symbols[$0]}))
+    return String(indexes.compactMap({configuration.characters[$0]}))
   }
 }

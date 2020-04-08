@@ -22,51 +22,48 @@
 
 import Foundation
 
-public final class RCCoderConfiguration {
+public struct RCCoderConfiguration {
   
+  public let version: Version
   public let maxMessageCount: Int
-  public let symbols: [Character]
   public let bitesPerSymbol: Int
-  internal let emptySymbols: [Character]
-  internal let characterSet: CharacterSet
+  public let characters: [Character]
   
-  public init(symbols: String, shouldFillEmptySpace: Bool = true) {
-    self.characterSet = CharacterSet(charactersIn: symbols.map({String($0)}).reduce("", +))
-    var symbolsArray = symbols.map({$0})
-    if shouldFillEmptySpace {
-      self.emptySymbols = RCConstants.emptySymbols
-      symbolsArray.insert(emptySymbols[0], at: symbolsArray.count / 3)
-      symbolsArray.insert(emptySymbols[1], at: symbolsArray.count / 3 * 2)
-    } else {
-      self.emptySymbols = [RCConstants.emptySymbols[0]]
-      symbolsArray.insert(emptySymbols[0], at: 0)
-    }
-    self.symbols = symbolsArray
-    self.bitesPerSymbol = String(symbols.count, radix: 2).count
-    self.maxMessageCount = RCConstants.maxBites / bitesPerSymbol
+  public init(version: Version = .v1, characters: String) {
+    self.version = version
+    var charactersArray = characters.map({$0})
+    charactersArray.append(RCConstants.startingCharacter)
+    charactersArray.append(contentsOf: RCConstants.emptyCharacters)
+    self.characters = charactersArray
+    self.bitesPerSymbol = String(charactersArray.count - 1, radix: 2).count
+    self.maxMessageCount = RCConstants.maxBitesPerSection * 3 / bitesPerSymbol
   }
   
-  func indexOf(symbol: Character) -> Int {
-    return symbols.firstIndex(of: symbol)!
-  }
-  
-  func emptySymbolsIndex() -> [Int] {
-    return emptySymbols.map({symbols.firstIndex(of: $0)!})
+  func validate(_ text: String) -> Bool {
+    var specialCharacters = RCConstants.emptyCharacters
+    specialCharacters.append(RCConstants.startingCharacter)
+    return text.map({$0}).allSatisfy({characters.contains($0) && !specialCharacters.contains($0)}) && text.count <= maxMessageCount
   }
   
   public static var uuidConfiguration: RCCoderConfiguration {
-    return RCCoderConfiguration(symbols: "-ABCDEF0123456789")
+    return RCCoderConfiguration(characters: "-ABCDEF0123456789")
   }
   
   public static var numericConfiguration: RCCoderConfiguration {
-    return RCCoderConfiguration(symbols: ".,_0123456789")
+    return RCCoderConfiguration(characters: ".,_0123456789")
   }
   
   public static var shortConfiguration: RCCoderConfiguration {
-    return RCCoderConfiguration(symbols: " -abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+    return RCCoderConfiguration(characters: " -abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
   }
   
   public static var defaultConfiguration: RCCoderConfiguration {
-    return RCCoderConfiguration(symbols: ##"! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"##)
+    return RCCoderConfiguration(characters: ##"! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"##)
+  }
+}
+
+public extension RCCoderConfiguration {
+  enum Version {
+    case v1
   }
 }

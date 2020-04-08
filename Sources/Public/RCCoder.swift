@@ -37,8 +37,8 @@ public final class RCCoder {
 public extension RCCoder {
   func encode(_ image: RCImage) throws -> UIImage {
     let bits = try bitCoder.encode(message: image.message)
-    let image = imageEncoder.encode(image, bits: bits)
-    return image
+//    let image = imageEncoder.encode(image, bits: bits)
+    return UIImage()
   }
   
   func decode(_ image: UIImage) throws -> String {
@@ -49,7 +49,7 @@ public extension RCCoder {
   }
   
   func validate(_ text: String) -> Bool {
-    return text.trimmingCharacters(in: configuration.characterSet).isEmpty && text.count <= configuration.maxMessageCount
+    configuration.validate(text)
   }
 }
 

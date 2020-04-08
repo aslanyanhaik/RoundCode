@@ -24,7 +24,7 @@ import UIKit
 
 final class RCImageEncoder {
   
-  func encode(_ image: RCImage, bits: [[[RCBitGroup]]]) -> UIImage {
+  func encode(_ image: RCImage, bits: [[[RCBitGroup1]]]) -> UIImage {
     let rect = CGRect(origin: .zero, size: CGSize(width: image.size + image.contentInsets.left + image.contentInsets.right, height: image.size + image.contentInsets.top + image.contentInsets.bottom))
     let renderer = UIGraphicsImageRenderer(bounds: rect, format: .default())
     let renderedImage = renderer.image { context in
@@ -97,7 +97,7 @@ private extension RCImageEncoder {
     attachmentImage.draw(in: scaledImageRect, blendMode: .normal, alpha: 1)
   }
   
-  func drawMessage(image: RCImage, group: [[RCBitGroup]], angle: CGFloat, path: UIBezierPath) {
+  func drawMessage(image: RCImage, group: [[RCBitGroup1]], angle: CGFloat, path: UIBezierPath) {
     guard !image.message.isEmpty else { return }
     let lineWidth = image.size * RCConstants.dotSizeScale / 11 * 2 //number of lines including spaces
     let mainRadius = (image.size - lineWidth) / 2
@@ -110,7 +110,7 @@ private extension RCImageEncoder {
       let rowBitsGroup = $0.1
       let radius = $0.0
       rowBitsGroup.forEach { bit in
-        guard bit.bit.boolValue else { return }
+        //guard bit.bit.boolValue else { return }
         let startPosition = startAngle + distancePerBit * CGFloat(bit.offset)
         let endPosition = startPosition + distancePerBit * CGFloat(bit.count)
         let linePath = UIBezierPath(arcCenter: center, radius: radius, startAngle: startPosition, endAngle: endPosition, clockwise: true)

@@ -230,16 +230,11 @@ extension RCImageDecoder {
 
 extension RCImageDecoder {
   
-  struct RCPixelPattern: CustomStringConvertible {
-    
+  struct RCPixelPattern {
     let bit: RCBit
     let x: Int
     let y: Int
     var count: Float
-    
-    var description: String {
-      "\(bit.debugDescription), start: \(y) \(x), count: \(count)"
-    }
   }
   
   enum Side: CaseIterable {

@@ -22,7 +22,40 @@
 
 import Foundation
 
-final class RCBitGroup {
+struct RCBitSection {
+  
+  var topLevel = [RCBit]()
+  var middleLevel = [RCBit]()
+  var bottomLevel = [RCBit]()
+}
+
+struct RCData {
+  
+  var firstShard = RCBitSection()
+  var secondShard = RCBitSection()
+  var thirdShard = RCBitSection()
+  var parity = RCBitSection()
+  
+  init(_ bits: [RCBit]) {
+    let sections = bits.chunked(into: 4).map { sectionBits -> RCBitSection in
+      var data = sectionBits
+      var section = RCBitSection()
+      section.topLevel = Array(data.prefix(RCConstants.topLevelBitesCount))
+      data = Array(data.dropFirst(RCConstants.topLevelBitesCount))
+      section.middleLevel = Array(data.prefix(RCConstants.middleLevelBitesCount))
+      data = Array(data.dropFirst(RCConstants.middleLevelBitesCount))
+      section.bottomLevel = data
+      return section
+    }
+    firstShard = sections[0]
+    secondShard = sections[1]
+    thirdShard = sections[2]
+    parity = sections[3]
+  }
+}
+
+
+final class RCBitGroup1 {
   
   var bit: RCBit
   var count: Int
@@ -35,7 +68,7 @@ final class RCBitGroup {
   }
 }
 
-extension RCBitGroup: CustomDebugStringConvertible {
+extension RCBitGroup1: CustomDebugStringConvertible {
   var debugDescription: String {
     "bit: \(bit), count: \(count), offset: \(offset) \n"
   }
