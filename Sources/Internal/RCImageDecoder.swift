@@ -37,7 +37,7 @@ final class RCImageDecoder {
 extension RCImageDecoder {
   func process(pointer: UnsafeMutablePointer<UInt8>) throws -> [RCBit] {
     let bufferData = UnsafeMutableBufferPointer<UInt8>(start: pointer, count: size * size)
-    let data = RCMatrix<UInt8>(rows: size, items: bufferData)
+    let data = RCMatrixContainer(rows: size, items: bufferData)
     var points = [CGPoint]()
     for side in Side.allCases {
       switch side {
@@ -72,9 +72,9 @@ extension RCImageDecoder {
 }
 
 extension RCImageDecoder {
-  private func scanControlPoint(for data: RCMatrix<UInt8>, region: (x: Int, y: Int), side: Side) throws -> CGPoint {
+  private func scanControlPoint(for data: RCMatrixContainer, region: (x: Int, y: Int), side: Side) throws -> CGPoint {
     
-    func scan(region: (x: Int, y: Int, size: Int), data: RCMatrix<UInt8>, coordinate: (Int) -> (x: Int, y: Int), comparison: (RCPixelPattern, (x: Int, y: Int)) -> Bool) -> [RCPixelPattern] {
+    func scan(region: (x: Int, y: Int, size: Int), data: RCMatrixContainer, coordinate: (Int) -> (x: Int, y: Int), comparison: (RCPixelPattern, (x: Int, y: Int)) -> Bool) -> [RCPixelPattern] {
       var lastPattern = RCPixelPattern(bit: data[region.x, region.y] > RCConstants.pixelThreshold ? RCBit.zero : RCBit.one, x: region.x, y: region.y, count: 0)
       var pixelPatterns = [lastPattern]
       var count = 0
@@ -196,7 +196,7 @@ extension RCImageDecoder {
     let context = generateContext(data: pixelData)
     context?.draw(image, in: CGRect(origin: .zero, size: CGSize(width: image.width, height: image.height)))
     let buffer = UnsafeMutableBufferPointer<UInt8>(start: pixelData.assumingMemoryBound(to: UInt8.self), count: image.width * image.height)
-    let data = RCMatrix(rows: image.height, items: buffer)
+    let data = RCMatrixContainer(rows: image.height, items: buffer)
     let size = CGFloat(data.columns)
     let lineWidth = size * RCConstants.dotSizeScale / 11 * 2 //number of lines including spaces
     let mainRadius = (size - lineWidth) / 2

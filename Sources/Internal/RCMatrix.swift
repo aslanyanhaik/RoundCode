@@ -22,35 +22,27 @@
 
 import Accelerate
 
-final class RCMatrix<T: Numeric & Hashable> {
+final class RCMatrix {
   
   //MARK: Properties
   let rows: Int
   var columns: Int {
     data.count / rows
   }
-  var data: UnsafeMutableBufferPointer<T>
+  var data: [UInt8]
   
   //MARK: Inits
   init(size: Int) {
     self.rows = size
-    data = UnsafeMutableBufferPointer<T>.allocate(capacity: rows * rows)
-    data.initialize(repeating: 0)
-    defer {
-      data.deallocate()
-    }
+    data = Array(repeating: 0, count: rows * rows)
   }
   
   init(rows: Int, columns: Int) {
     self.rows = rows
-    data = UnsafeMutableBufferPointer<T>.allocate(capacity: rows * columns)
-    data.initialize(repeating: 0)
-    defer {
-      data.deallocate()
-    }
+    data = Array(repeating: 0, count: rows * columns)
   }
   
-  init(columns: Int, items: UnsafeMutableBufferPointer<T>) {
+  init(columns: Int, items: [UInt8]) {
     guard items.count % columns == 0 else {
       fatalError("number of columns are not matching")
     }
@@ -58,7 +50,7 @@ final class RCMatrix<T: Numeric & Hashable> {
     self.data = items
   }
   
-  init(rows: Int, items: UnsafeMutableBufferPointer<T>) {
+  init(rows: Int, items: [UInt8]) {
     guard items.count % rows == 0 else {
       fatalError("number of rows are not matching")
     }
@@ -75,7 +67,7 @@ extension RCMatrix {
     return matrix
   }
   
-  subscript(column: Int, row: Int) -> T {
+  subscript(column: Int, row: Int) -> UInt8 {
     get {
       return data[self.rows * row + column]
     }
@@ -84,75 +76,37 @@ extension RCMatrix {
     }
   }
   
-  func row(for index: Int) -> Slice<UnsafeMutableBufferPointer<T>> {
+  func row(for index: Int) -> [UInt8] {
     let range = (columns * index)..<(columns * (index + 1))
-    return data[range]
+    return Array(data[range])
   }
   
-  func column(for index: Int) -> UnsafeMutableBufferPointer<T> {
+  func column(for index: Int) -> [UInt8] {
     let indexes = stride(from: 0, to: data.count, by: self.columns).map({$0})
-    let pointer = UnsafeMutableBufferPointer<T>.allocate(capacity: indexes.count)
-    indexes.forEach { rowIndex in
-      pointer[index] = data[index + rowIndex]
-    }
-    defer {
-      pointer.deallocate()
-    }
-    return pointer
+    return indexes.map({data[index + $0]})
   }
   
-  func rowsData() -> [Slice<UnsafeMutableBufferPointer<T>>] {
+  func rowsData() -> [[UInt8]] {
     return stride(from: 0, to: data.count, by: self.columns).map { index in
-      data[index ..< min(index + self.columns, data.count)]
+      Array(data[index ..< min(index + self.columns, data.count)])
     }
   }
   
-  func columnsData() -> [UnsafeMutableBufferPointer<T>] {
-    let pointers =  (0..<self.columns).map({$0}).map { index -> UnsafeMutableBufferPointer<T> in
-      let indexes = stride(from: 0, to: data.count, by: self.columns).map({$0})
-      let pointer = UnsafeMutableBufferPointer<T>.allocate(capacity: indexes.count)
-      indexes.forEach { rowIndex in
-        pointer[index] = data[index + rowIndex]
-      }
-      return pointer
-    }
-    defer {
-      pointers.forEach({$0.deallocate()})
-    }
-    return pointers
+  func subMatrix(rowMin: Int, columnMin: Int, rowMax: Int, columnMax: Int) -> RCMatrix {
+    let data = rowsData()[rowMin...rowMax].map({$0[columnMin...columnMax]}).flatMap({$0})
+    return RCMatrix(rows: (rowMin...rowMax).count, items: data)
   }
   
-  func swap(row firstRow: Int, with lastRow: Int) {
-    var rowsData = self.rowsData()
-    rowsData.swapAt(firstRow, lastRow)
-    rowsData.flatMap({$0}).enumerated().forEach { value in
-      self.data[value.offset] = value.element
+  func multiply(by matrix: RCMatrix) -> RCMatrix {
+    guard self.columns == matrix.rows else {
+      fatalError("Cannot subract matrices of different dimensions")
     }
+    var currentData = self.data.map({Float($0)})
+    var matrixData = matrix.data.map({Float($0)})
+    var result = [Float](repeating: 0, count: self.rows * matrix.columns)
+    vDSP_mmul(&currentData, 1, &matrixData, 1, &result, 1, UInt(self.rows), UInt(matrix.columns), UInt(self.columns))
+    return RCMatrix(rows: self.rows, items: result.map({UInt8($0)}))
   }
-  
-//  func augment(by matrix: RCMatrix) -> RCMatrix {
-//    guard self.rows == matrix.rows else {
-//      fatalError("Matrices don't have the same number of rows")
-//    }
-//    let data = zip(self.rowsData(), matrix.rowsData()).map({$0.0 + $0.1}).flatMap({$0})
-//    return RCMatrix(rows: self.rows, items: data)
-//  }
-
-//  func subMatrix(rowMin: Int, columnMin: Int, rowMax: Int, columnMax: Int) -> RCMatrix {
-//    let data = rowsData()[rowMin...rowMax].map({$0[columnMin...columnMax]}).flatMap({$0})
-//    return RCMatrix(rows: (rowMin...rowMax).count, items: data)
-//  }
-}
-
-extension RCMatrix where T == Float {
-//  func multiply(by matrix: RCMatrix) -> RCMatrix {
-//    guard self.columns == matrix.rows else {
-//      fatalError("Cannot subract matrices of different dimensions")
-//    }
-//    var result = [T](repeating: 0, count: self.rows * matrix.columns)
-//    vDSP_mmul(self.data.baseAddress!, 1, matrix.data.baseAddress!, 1, &result, 1, UInt(self.rows), UInt(matrix.columns), UInt(self.columns))
-//    return RCMatrix(rows: self.rows, items: result)
-//  }
   
   func invert() {
     guard rows == columns else {
@@ -171,21 +125,8 @@ extension RCMatrix where T == Float {
       fatalError("error inverting matrix: Error(\(error))")
     }
     invertedData.enumerated().forEach { value in
-      self.data[value.offset] = Float(value.element)
+      self.data[value.offset] = UInt8(value.element)
     }
-  }
-}
-
-//MARK: Equatable
-extension RCMatrix: Equatable {
-  static func == (lhs: RCMatrix, rhs: RCMatrix) -> Bool {
-    guard lhs.rows == rhs.rows, lhs.columns == rhs.columns else { return false }
-    for index in 0..<lhs.data.count {
-      if lhs.data[index] != rhs.data[index] {
-        return false
-      }
-    }
-    return true
   }
 }
 
