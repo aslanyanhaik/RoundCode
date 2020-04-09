@@ -29,7 +29,7 @@ final class RCMatrix {
   var columns: Int {
     data.count / rows
   }
-  var data: [UInt8]
+  var data: [Int8]
   
   //MARK: Inits
   init(size: Int) {
@@ -42,7 +42,7 @@ final class RCMatrix {
     data = Array(repeating: 0, count: rows * columns)
   }
   
-  init(columns: Int, items: [UInt8]) {
+  init(columns: Int, items: [Int8]) {
     guard items.count % columns == 0 else {
       fatalError("number of columns are not matching")
     }
@@ -50,7 +50,7 @@ final class RCMatrix {
     self.data = items
   }
   
-  init(rows: Int, items: [UInt8]) {
+  init(rows: Int, items: [Int8]) {
     guard items.count % rows == 0 else {
       fatalError("number of rows are not matching")
     }
@@ -67,7 +67,7 @@ extension RCMatrix {
     return matrix
   }
   
-  subscript(column: Int, row: Int) -> UInt8 {
+  subscript(column: Int, row: Int) -> Int8 {
     get {
       return data[self.rows * row + column]
     }
@@ -76,17 +76,17 @@ extension RCMatrix {
     }
   }
   
-  func row(for index: Int) -> [UInt8] {
+  func row(for index: Int) -> [Int8] {
     let range = (columns * index)..<(columns * (index + 1))
     return Array(data[range])
   }
   
-  func column(for index: Int) -> [UInt8] {
+  func column(for index: Int) -> [Int8] {
     let indexes = stride(from: 0, to: data.count, by: self.columns).map({$0})
     return indexes.map({data[index + $0]})
   }
   
-  func rowsData() -> [[UInt8]] {
+  func rowsData() -> [[Int8]] {
     return stride(from: 0, to: data.count, by: self.columns).map { index in
       Array(data[index ..< min(index + self.columns, data.count)])
     }
@@ -105,7 +105,7 @@ extension RCMatrix {
     var matrixData = matrix.data.map({Float($0)})
     var result = [Float](repeating: 0, count: self.rows * matrix.columns)
     vDSP_mmul(&currentData, 1, &matrixData, 1, &result, 1, UInt(self.rows), UInt(matrix.columns), UInt(self.columns))
-    return RCMatrix(rows: self.rows, items: result.map({UInt8($0)}))
+    return RCMatrix(rows: self.rows, items: result.map({Int8($0)}))
   }
   
   func invert() {
@@ -125,7 +125,7 @@ extension RCMatrix {
       fatalError("error inverting matrix: Error(\(error))")
     }
     invertedData.enumerated().forEach { value in
-      self.data[value.offset] = UInt8(value.element)
+      self.data[value.offset] = Int8(value.element)
     }
   }
 }

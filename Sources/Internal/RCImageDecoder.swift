@@ -37,7 +37,7 @@ final class RCImageDecoder {
 extension RCImageDecoder {
   func process(pointer: UnsafeMutablePointer<UInt8>) throws -> [RCBit] {
     let bufferData = UnsafeMutableBufferPointer<UInt8>(start: pointer, count: size * size)
-    let data = RCMatrixContainer(rows: size, items: bufferData)
+    let data = PixelContainer(rows: size, items: bufferData)
     var points = [CGPoint]()
     for side in Side.allCases {
       switch side {
@@ -72,10 +72,10 @@ extension RCImageDecoder {
 }
 
 extension RCImageDecoder {
-  private func scanControlPoint(for data: RCMatrixContainer, region: (x: Int, y: Int), side: Side) throws -> CGPoint {
+  private func scanControlPoint(for data: PixelContainer, region: (x: Int, y: Int), side: Side) throws -> CGPoint {
     
-    func scan(region: (x: Int, y: Int, size: Int), data: RCMatrixContainer, coordinate: (Int) -> (x: Int, y: Int), comparison: (RCPixelPattern, (x: Int, y: Int)) -> Bool) -> [RCPixelPattern] {
-      var lastPattern = RCPixelPattern(bit: data[region.x, region.y] > RCConstants.pixelThreshold ? RCBit.zero : RCBit.one, x: region.x, y: region.y, count: 0)
+    func scan(region: (x: Int, y: Int, size: Int), data: PixelContainer, coordinate: (Int) -> (x: Int, y: Int), comparison: (PixelPattern, (x: Int, y: Int)) -> Bool) -> [PixelPattern] {
+      var lastPattern = PixelPattern(bit: data[region.x, region.y] > RCConstants.pixelThreshold ? RCBit.zero : RCBit.one, x: region.x, y: region.y, count: 0)
       var pixelPatterns = [lastPattern]
       var count = 0
       let maxSize = region.size * region.size
@@ -86,7 +86,7 @@ extension RCImageDecoder {
           lastPattern.count += 1
           pixelPatterns[pixelPatterns.count - 1] = lastPattern
         } else {
-          lastPattern = RCPixelPattern(bit: bit, x: coordinate.x, y: coordinate.y, count: 1)
+          lastPattern = PixelPattern(bit: bit, x: coordinate.x, y: coordinate.y, count: 1)
           pixelPatterns.append(lastPattern)
         }
         count += 1
@@ -94,7 +94,7 @@ extension RCImageDecoder {
       return pixelPatterns
     }
     
-    let pixelPatterns: [RCPixelPattern]
+    let pixelPatterns: [PixelPattern]
     switch side {
       case .left, .right:
         pixelPatterns = scan(region: (region.x, region.y, sectionSize), data: data, coordinate: { count in
@@ -196,7 +196,7 @@ extension RCImageDecoder {
     let context = generateContext(data: pixelData)
     context?.draw(image, in: CGRect(origin: .zero, size: CGSize(width: image.width, height: image.height)))
     let buffer = UnsafeMutableBufferPointer<UInt8>(start: pixelData.assumingMemoryBound(to: UInt8.self), count: image.width * image.height)
-    let data = RCMatrixContainer(rows: image.height, items: buffer)
+    let data = PixelContainer(rows: image.height, items: buffer)
     let size = CGFloat(data.columns)
     let lineWidth = size * RCConstants.dotSizeScale / 11 * 2 //number of lines including spaces
     let mainRadius = (size - lineWidth) / 2
@@ -230,7 +230,7 @@ extension RCImageDecoder {
 
 extension RCImageDecoder {
   
-  struct RCPixelPattern {
+  struct PixelPattern {
     let bit: RCBit
     let x: Int
     let y: Int
@@ -242,5 +242,22 @@ extension RCImageDecoder {
     case top
     case bottom
     case right
+  }
+  
+  final class PixelContainer {
+    let rows: Int
+    var columns: Int { data.count / rows }
+    let data: UnsafeMutableBufferPointer<UInt8>
+    
+    init(rows: Int, items: UnsafeMutableBufferPointer<UInt8>) {
+      guard items.count % rows == 0 else { fatalError("number of rows are not matching") }
+      self.rows = rows
+      self.data = items
+    }
+    
+    subscript(column: Int, row: Int) -> UInt8 {
+      get { return data[self.rows * row + column] }
+      set { data[self.rows * row + column] = newValue }
+    }
   }
 }

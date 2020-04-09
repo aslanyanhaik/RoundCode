@@ -23,10 +23,11 @@
 import CoreGraphics
 
 struct RCConstants {
-  static let maxBitesPerSection = 276
-  static let topLevelBitesCount = 23
-  static let middleLevelBitesCount = 23
-  static let bottomLevelBitesCount = 23
+  static let maxBitesPerSection = 60
+  static let topLevelBitesCount = 20
+  static let middleLevelBitesCount = 20
+  static let bottomLevelBitesCount = 20
+  
   static let imageScale: CGFloat = 0.8
   static let dotSizeScale: CGFloat = 0.08
   static let dotPatterns: [CGFloat] = [6, 4, 2]

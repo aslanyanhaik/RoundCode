@@ -20,39 +20,39 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-import Accelerate
+import Foundation
 
-final class RCMatrixContainer {
+class ReedSolomon {
   
-  //MARK: Properties
-  let rows: Int
-  var columns: Int {
-    data.count / rows
-  }
-  let data: UnsafeMutableBufferPointer<UInt8>
+  private var matrix: RCMatrix!
+  var parityRows = [[Int8]]()
   
-  init(columns: Int, items: UnsafeMutableBufferPointer<UInt8>) {
-    guard items.count % columns == 0 else {
-      fatalError("number of columns are not matching")
-    }
-    self.rows = items.count / columns
-    self.data = items
-  }
-  
-  init(rows: Int, items: UnsafeMutableBufferPointer<UInt8>) {
-    guard items.count % rows == 0 else {
-      fatalError("number of rows are not matching")
-    }
-    self.rows = rows
-    self.data = items
+  func encode(_ shards: [RCBit]) -> [RCBit] {
+    matrix = vandermonde(rows: shards.count, columns: shards.count + 1)
+//    parityRows = new byte [parityShardCount] [];
+//    for (int i = 0; i < parityShardCount; i++) {
+//      parityRows[i] = matrix.getRow(dataShardCount + i);
+//    }
+//    
+    
+    
+    
+    return []
   }
   
-  subscript(column: Int, row: Int) -> UInt8 {
-    get {
-      return data[self.rows * row + column]
+  func isDataCorrect() -> Bool {
+    return true
+  }
+}
+
+extension ReedSolomon {
+  func vandermonde(rows: Int, columns: Int) -> RCMatrix {
+    let matrix = RCMatrix(rows: rows, columns: columns)
+    (0..<rows).forEach { row in
+      (0..<columns).forEach { column in
+        matrix[row, column] = GaloisField.shared.exp(a: Int8(row), n: column)
+      }
     }
-    set {
-      data[self.rows * row + column] = newValue
-    }
+    return matrix
   }
 }
