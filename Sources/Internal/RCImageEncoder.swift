@@ -30,7 +30,7 @@ final class RCImageEncoder {
     self.configuration = configuration
   }
   
-  func encode(_ image: RCImage, bits: [RCBit) -> UIImage {
+  func encode(_ image: RCImage, bits: [RCBit]) -> UIImage {
     let rect = CGRect(origin: .zero, size: CGSize(width: image.size + image.contentInsets.left + image.contentInsets.right, height: image.size + image.contentInsets.top + image.contentInsets.bottom))
     let renderer = UIGraphicsImageRenderer(bounds: rect, format: .default())
     let renderedImage = renderer.image { context in
@@ -59,8 +59,8 @@ final class RCImageEncoder {
       [(halfSize, 0), (size, halfSize), (halfSize, size), (0, halfSize)].map({CGPoint(x: $0.0, y: $0.1)}).forEach { point in
         drawDot(image: image, position: point, path: mainPath)
       }
-      bits.enumerated().forEach { value in
-        drawMessage(image: image, group: value.element, angle: CGFloat(value.offset - 1) * CGFloat.pi / 2, path: mainPath)
+      bits.chunked(into: 4).enumerated().forEach { value in
+        drawMessage(image: image, section: RCBitSection(data: value.element, configuration: configuration), angle: CGFloat(value.offset - 1) * CGFloat.pi / 2, path: mainPath)
       }
       mainPath.usesEvenOddFillRule = true
       mainPath.addClip()
@@ -103,23 +103,19 @@ private extension RCImageEncoder {
     attachmentImage.draw(in: scaledImageRect, blendMode: .normal, alpha: 1)
   }
   
-  func drawMessage(image: RCImage, group: [[RCBitGroup1]], angle: CGFloat, path: UIBezierPath) {
+  func drawMessage(image: RCImage, section: RCBitSection, angle: CGFloat, path: UIBezierPath) {
     guard !image.message.isEmpty else { return }
-    let lineWidth = image.size * RCConstants.dotSizeScale / 11 * 2 //number of lines including spaces
-    let mainRadius = (image.size - lineWidth) / 2
-    let rowRadius = group.indices.map({mainRadius - lineWidth * CGFloat($0 * 2)})
-    var startAngle = asin(image.size * RCConstants.dotSizeScale / mainRadius)
-    let distancePerBit = (CGFloat.pi / 2 - startAngle * 2) / CGFloat(RCConstants.level1BitesCount)
+    let lineWidth = image.size * RCConstants.dotSizeScale / 5 //number of lines including spaces
+    let mainRadius = image.size / 2
+    let startAngle = asin(image.size * RCConstants.dotSizeScale / mainRadius)
     let center = CGPoint(x: image.size / 2, y: image.size / 2)
-    startAngle += angle
-    zip(rowRadius, group).forEach {
-      let rowBitsGroup = $0.1
-      let radius = $0.0
-      rowBitsGroup.forEach { bit in
-        //guard bit.bit.boolValue else { return }
-        let startPosition = startAngle + distancePerBit * CGFloat(bit.offset)
-        let endPosition = startPosition + distancePerBit * CGFloat(bit.count)
-        let linePath = UIBezierPath(arcCenter: center, radius: radius, startAngle: startPosition, endAngle: endPosition, clockwise: true)
+    zip([0.5, 2.5, 4.5].map({mainRadius - lineWidth * $0}), [section.topLevel, section.middleLevel, section.bottomLevel]) .forEach { (radius, bitGroups) in
+      let bitAngle = (CGFloat.pi / 2 - startAngle * 2)  / CGFloat(bitGroups.map({$0.count}).reduce(0, +))
+      bitGroups.forEach { group in
+        guard group.bit == .one else { return }
+        let startingPosition = startAngle + bitAngle * CGFloat(group.offset) + angle
+        let endPosition = startingPosition + bitAngle * CGFloat(group.count)
+        let linePath = UIBezierPath(arcCenter: center, radius: radius, startAngle: startingPosition, endAngle: endPosition, clockwise: true)
         let cgPath = CGPath(__byStroking: linePath.cgPath, transform: nil, lineWidth: lineWidth, lineCap: .round, lineJoin: .round, miterLimit: 1.0)!
         let combinedPath = UIBezierPath(cgPath: cgPath)
         path.append(combinedPath)
@@ -128,56 +124,32 @@ private extension RCImageEncoder {
   }
 }
 
-
-
-struct RCBitSection {
+extension RCImageEncoder {
+  struct RCBitGroup {
+    let bit: RCBit
+    let offset: Int
+    var count: Int
+  }
   
-  var topLevel = [RCBit]()
-  var middleLevel = [RCBit]()
-  var bottomLevel = [RCBit]()
-}
-
-struct RCData {
-  
-  var firstShard = RCBitSection()
-  var secondShard = RCBitSection()
-  var thirdShard = RCBitSection()
-  var parity = RCBitSection()
-  
-  init(_ bits: [RCBit], configuration: RCCoderConfiguration) {
-    let sections = bits.chunked(into: 4).map { sectionBits -> RCBitSection in
-      var data = sectionBits
-      var section = RCBitSection()
-      section.topLevel = Array(data.prefix(configuration.version.topLevelBitesCount))
-      data = Array(data.dropFirst(configuration.version.topLevelBitesCount))
-      section.middleLevel = Array(data.prefix(configuration.version.middleLevelBitesCount))
-      data = Array(data.dropFirst(configuration.version.middleLevelBitesCount))
-      section.bottomLevel = data
-      return section
+  struct RCBitSection {
+    let topLevel: [RCBitGroup]
+    let middleLevel: [RCBitGroup]
+    let bottomLevel: [RCBitGroup]
+    
+    init(data: [RCBit], configuration: RCCoderConfiguration) {
+      func toBitGroup(_ bits: [RCBit]) -> [RCBitGroup] {
+        var bitGroup = [RCBitGroup(bit: bits[0], offset: 0, count: 0)]
+        bits.enumerated().forEach { value in
+          bitGroup.last!.bit == value.element ? (bitGroup[bitGroup.count - 1].count += 1) : bitGroup.append(RCBitGroup(bit: value.element, offset: value.offset, count: 1))
+        }
+        return bitGroup
+      }
+      var bitData = data
+      self.topLevel = toBitGroup(Array(bitData.prefix(configuration.version.topLevelBitesCount)))
+      bitData = Array(bitData.dropFirst(configuration.version.topLevelBitesCount))
+      self.middleLevel = toBitGroup(Array(bitData.prefix(configuration.version.middleLevelBitesCount)))
+      bitData = Array(bitData.dropFirst(configuration.version.middleLevelBitesCount))
+      self.bottomLevel = toBitGroup(bitData)
     }
-    firstShard = sections[0]
-    secondShard = sections[1]
-    thirdShard = sections[2]
-    parity = sections[3]
-  }
-}
-
-
-final class RCBitGroup1 {
-  
-  var bit: RCBit
-  var count: Int
-  var offset: Int
-  
-  init(bit: RCBit, count: Int, offset: Int) {
-    self.bit = bit
-    self.count = count
-    self.offset = offset
-  }
-}
-
-extension RCBitGroup1: CustomDebugStringConvertible {
-  var debugDescription: String {
-    "bit: \(bit), count: \(count), offset: \(offset) \n"
   }
 }
