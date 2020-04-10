@@ -41,6 +41,9 @@ extension RCBitCoder {
     guard message.count <= configuration.maxMessageCount else {
       throw RCError.longText
     }
+    guard !message.isEmpty else {
+      return [RCBit](repeating: .zero, count: configuration.version.maxBitesPerSection * 4)
+    }
     //mapping into character indexes
     var indexes = message.map({configuration.characters.firstIndex(of: $0)!})
     //adding staring character index and filling with special indexes

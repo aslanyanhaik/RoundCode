@@ -38,7 +38,7 @@ public extension RCCoder {
   func encode(_ image: RCImage) throws -> UIImage {
     let bits = try bitCoder.encode(message: image.message)
     let image = imageEncoder.encode(image, bits: bits)
-    return UIImage()
+    return image
   }
   
   func decode(_ image: UIImage) throws -> String {
