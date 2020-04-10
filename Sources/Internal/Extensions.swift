@@ -24,8 +24,37 @@ import Foundation
 
 extension Array {
   func chunked(into size: Int) -> [[Element]] {
-    return stride(from: 0, to: count, by: size).map {
-      Array(self[$0 ..< Swift.min($0 + size, count)])
+    return stride(from: 0, to: count, by: count / size).map {
+      Array(self[$0 ..< Swift.min($0 + count / size, count)])
     }
+  }
+}
+
+extension UInt8 {
+  var bits: [RCBit] {
+    var bytes = self
+    var bits = [RCBit](repeating: .zero, count: self.bitWidth)
+    (0..<bitWidth).forEach { index in
+      let currentBit = bytes & 0x01
+      if currentBit != 0 {
+        bits[index] = .one
+      }
+      bytes >>= 1
+    }
+    return bits
+  }
+}
+
+extension Array where Self.Element == RCBit {
+  func bytes() -> [UInt8] {
+    let numBits = count
+    let numBytes = (numBits + 7) / 8
+    var bytes = [UInt8](repeating: 0, count: numBytes)
+    self.enumerated().forEach { item in
+      if item.element == .one {
+        bytes[item.offset / 8] += 1 << (7 - item.offset % 8)
+      }
+    }
+    return  bytes
   }
 }

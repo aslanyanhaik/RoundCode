@@ -32,59 +32,94 @@ final class RCBitCoder {
 }
 
 extension RCBitCoder {
-  func encode(message: String) throws -> RCData {
-    var specialCharacters = RCConstants.emptyCharacters
-    specialCharacters.append(RCConstants.startingCharacter)
+  func encode(message: String) throws -> [RCBit] {
+    var specialCharacters = configuration.version.emptyCharacters
+    specialCharacters.append(configuration.version.startingCharacter)
     guard message.map({$0}).allSatisfy({configuration.characters.contains($0) && !specialCharacters.contains($0)}) else {
       throw RCError.invalidCharacter
     }
     guard message.count <= configuration.maxMessageCount else {
       throw RCError.longText
     }
-    var dataBytes = message.map({configuration.characters.firstIndex(of: $0)!})
-    dataBytes.insert(configuration.characters.firstIndex(of: RCConstants.startingCharacter)!, at: 0)
-    let emptyIndexes = RCConstants.emptyCharacters.map({configuration.characters.firstIndex(of: $0)!})
+    //mapping into character indexes
+    var indexes = message.map({configuration.characters.firstIndex(of: $0)!})
+    //adding staring character index and filling with special indexes
+    indexes.insert(configuration.characters.firstIndex(of: configuration.version.startingCharacter)!, at: 0)
+    let emptyIndexes = configuration.version.emptyCharacters.map({configuration.characters.firstIndex(of: $0)!})
     let randomBytes = (0..<configuration.maxMessageCount).map({_ in emptyIndexes[Int.random(in: 0..<emptyIndexes.count)]})
-    dataBytes.append(contentsOf: randomBytes)
-    dataBytes = Array(dataBytes.prefix(configuration.maxMessageCount))
-    let encodedBits = dataBytes.map { byte -> [RCBit] in
+    indexes.append(contentsOf: randomBytes)
+    indexes = Array(indexes.prefix(configuration.maxMessageCount))
+    //encoding into bits
+    let encodedBits = indexes.map { byte -> [RCBit] in
       var stringValue = String(repeating: "0", count: configuration.bitesPerSymbol)
       stringValue += String(byte, radix: 2)
       return stringValue.suffix(configuration.bitesPerSymbol).compactMap({RCBit($0)})
     }.flatMap({$0})
-    var totalBits = [RCBit](repeating: .zero, count: RCConstants.maxBitesPerSection * 3)
+    //filling with empty bits
+    var totalBits = [RCBit](repeating: .zero, count: configuration.version.maxBitesPerSection * 3)
     totalBits.insert(contentsOf: encodedBits, at: 0)
-    totalBits = Array(totalBits.prefix(RCConstants.maxBitesPerSection * 3))
-    //reed solomon
-    return RCData(totalBits)
+    totalBits = Array(totalBits.prefix(configuration.version.maxBitesPerSection * 3))
+    //calculating parity
+    let parityBits = parity(for: totalBits)
+    totalBits.append(contentsOf: parityBits)
+    return totalBits
   }
   
   
   func decode(_ bits: [RCBit]) throws -> String {
     guard bits.contains(.one) else { return "" }
-    //decode bits to indexes
-    let bytes = stride(from: 0, to: bits.count, by: configuration.bitesPerSymbol).map {
-      Array(bits[$0 ..< min($0 + configuration.bitesPerSymbol, bits.count)])
+    //starting character to bits
+    var startingIndexCharacter = String(repeating: "0", count: configuration.bitesPerSymbol)
+    startingIndexCharacter += String(configuration.characters.firstIndex(of: configuration.version.startingCharacter)!, radix: 2)
+    let startingIndexBits = startingIndexCharacter.suffix(configuration.bitesPerSymbol).compactMap({RCBit($0)})
+    //chunked into 4 sections
+    var sectionBytes = bits.chunked(into: 4)
+    //get starting section index
+    guard let firstSectionIndex = sectionBytes.firstIndex(where: { sectionBits in
+      zip(sectionBits.prefix(startingIndexBits.count), startingIndexBits).allSatisfy({$0 == $1})
+    }) else {
+      throw RCError.decoding
     }
-    var indexes = bytes.map({ bits in
+    //fix arrangement of sections
+    let previousSections = Array(sectionBytes.prefix(firstSectionIndex))
+    sectionBytes = Array(sectionBytes.dropFirst(firstSectionIndex))
+    sectionBytes.append(contentsOf: previousSections)
+    let parityBits = sectionBytes.last!
+    let dataBits = sectionBytes.dropLast().flatMap({$0})
+    //validate data
+    guard validate(parityData: parityBits, data: dataBits) else {
+      throw RCError.decoding
+    }
+    //mapping to custom size byte
+    let bytes = stride(from: 0, to: dataBits.count, by: configuration.bitesPerSymbol).map {
+      Array(dataBits[$0 ..< min($0 + configuration.bitesPerSymbol, dataBits.count)])
+    }.prefix(configuration.maxMessageCount)
+    //converting binary into decimal
+    let indexes = bytes.map({ bits in
       return bits.reduce(0) { accumulated, current in
         accumulated << 1 | current.rawValue
       }
     })
-    var sectionIndexes = indexes.chunked(into: 4)
-    let startingIndex = configuration.characters.firstIndex(of: RCConstants.startingCharacter)!
-    guard let firstSectionIndex = sectionIndexes.firstIndex(where: {$0.first == startingIndex}) else {
-      throw RCError.decoding
-    }
-    let previousSections = Array(sectionIndexes.prefix(firstSectionIndex))
-    sectionIndexes = Array(sectionIndexes.dropFirst(firstSectionIndex))
-    sectionIndexes.append(contentsOf: previousSections)
-    //reed solomon check
-    let emptyIndexes = RCConstants.emptyCharacters.map({configuration.characters.firstIndex(of: $0)!})
-    indexes = Array(sectionIndexes.flatMap({$0}).prefix(configuration.maxMessageCount)).filter({!emptyIndexes.contains($0)})
-    guard (indexes.max() ?? 0) <= configuration.characters.count else {
-      throw RCError.wrongConfiguration
-    }
-    return String(indexes.compactMap({configuration.characters[$0]}))
+    var characters = indexes.compactMap({configuration.characters[$0]})
+    //removing staring and random characters
+    var redundantCharacters = configuration.version.emptyCharacters
+    redundantCharacters.append(configuration.version.startingCharacter)
+    characters = characters.filter({!redundantCharacters.contains($0)})
+    return String(characters)
+  }
+}
+
+extension RCBitCoder {
+  private func parity(for data: [RCBit]) -> [RCBit] {
+    let bytes = data.bytes()
+    var parityMatrix = RCMatrix(rows: 1, items: configuration.version.parityTable)
+    let dataMatrix = RCMatrix(rows: configuration.version.parityTable.count, items: bytes)
+    parityMatrix = parityMatrix.reducedMultiply(by: dataMatrix)
+    return parityMatrix.data.map({$0.bits}).flatMap({$0})
+  }
+  
+  private func validate(parityData: [RCBit], data: [RCBit]) -> Bool {
+    let validationParity = parity(for: data)
+    return zip(parityData, validationParity).allSatisfy({$0 == $1})
   }
 }

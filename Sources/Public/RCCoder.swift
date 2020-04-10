@@ -26,7 +26,7 @@ public final class RCCoder {
   
   public let configuration: RCCoderConfiguration
   private lazy var imageDecoder = RCImageDecoder(size: 720)
-  private lazy var imageEncoder = RCImageEncoder()
+  private lazy var imageEncoder = RCImageEncoder(configuration: self.configuration)
   private lazy var bitCoder = RCBitCoder(configuration: self.configuration)
   
   public init(configuration: RCCoderConfiguration = .defaultConfiguration) {
@@ -37,7 +37,7 @@ public final class RCCoder {
 public extension RCCoder {
   func encode(_ image: RCImage) throws -> UIImage {
     let bits = try bitCoder.encode(message: image.message)
-//    let image = imageEncoder.encode(image, bits: bits)
+    let image = imageEncoder.encode(image, bits: bits)
     return UIImage()
   }
   

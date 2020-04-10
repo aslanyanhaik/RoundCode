@@ -32,16 +32,16 @@ public struct RCCoderConfiguration {
   public init(version: Version = .v1, characters: String) {
     self.version = version
     var charactersArray = characters.map({$0})
-    charactersArray.append(RCConstants.startingCharacter)
-    charactersArray.append(contentsOf: RCConstants.emptyCharacters)
+    charactersArray.append(version.startingCharacter)
+    charactersArray.append(contentsOf: version.emptyCharacters)
     self.characters = charactersArray
     self.bitesPerSymbol = String(charactersArray.count - 1, radix: 2).count
-    self.maxMessageCount = RCConstants.maxBitesPerSection * 3 / bitesPerSymbol
+    self.maxMessageCount = version.maxBitesPerSection * 3 / bitesPerSymbol
   }
   
   func validate(_ text: String) -> Bool {
-    var specialCharacters = RCConstants.emptyCharacters
-    specialCharacters.append(RCConstants.startingCharacter)
+    var specialCharacters = version.emptyCharacters
+    specialCharacters.append(version.startingCharacter)
     return text.map({$0}).allSatisfy({characters.contains($0) && !specialCharacters.contains($0)}) && text.count <= maxMessageCount
   }
   
@@ -65,5 +65,42 @@ public struct RCCoderConfiguration {
 public extension RCCoderConfiguration {
   enum Version {
     case v1
+
+    var maxBitesPerSection: Int {
+      switch self {
+        case .v1: return 72
+      }
+    }
+    
+    var topLevelBitesCount: Int {
+      switch self {
+        case .v1: return 24
+      }
+    }
+    
+    var middleLevelBitesCount: Int {
+      switch self {
+        case .v1: return 24
+      }
+    }
+    
+    var bottomLevelBitesCount: Int {
+      switch self {
+        case .v1: return 24
+      }
+    }
+    
+    var parityTable: [UInt8] {
+      switch self {
+        case .v1:
+        return [0x03, 0x65, 0xB9]
+      }
+    }
+    
+    var emptyCharacters: [Character] {
+      ["\u{0540}", "\u{0531}"]
+    }
+    
+    var startingCharacter: Character { "\u{058D}" }
   }
 }
