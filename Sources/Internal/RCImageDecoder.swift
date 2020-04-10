@@ -26,11 +26,13 @@ final class RCImageDecoder {
   
   var size: Int
   var padding = 0
+  let configuration: RCCoderConfiguration
   private let sectionSize: Int
   
-  init(size: Int) {
+  init(size: Int, configuration: RCCoderConfiguration) {
     self.size = size
     sectionSize = size / 5
+    self.configuration = configuration
   }
 }
 
@@ -198,20 +200,20 @@ extension RCImageDecoder {
     let buffer = UnsafeMutableBufferPointer<UInt8>(start: pixelData.assumingMemoryBound(to: UInt8.self), count: image.width * image.height)
     let data = PixelContainer(rows: image.height, items: buffer)
     let size = CGFloat(data.columns)
-    let lineWidth = size * RCConstants.dotSizeScale / 11 * 2 //number of lines including spaces
-    let mainRadius = (size - lineWidth) / 2
-    let startAngle = asin(size * RCConstants.dotSizeScale / mainRadius)
-    let distancePerBit = (CGFloat.pi / 2 - startAngle * 2) / CGFloat(RCConstants.level1BitesCount)
+    let lineWidth = CGFloat(image.height) * RCConstants.dotSizeScale / 5 //number of lines including spaces
+    let mainRadius = CGFloat(image.height) / 2
+    let startAngle = asin(CGFloat(image.height) * RCConstants.dotSizeScale / mainRadius)
     var points = [CGPoint]()
-    [RCConstants.level1BitesCount, RCConstants.level2BitesCount, RCConstants.level3BitesCount].enumerated().forEach { row in
-      let radius = mainRadius - lineWidth * CGFloat(row.offset * 2)
-      (0..<4).forEach { group in
-        let baseDistance = -CGFloat.pi / 2 + CGFloat.pi / 2 * CGFloat(group) + startAngle
-        (0..<row.element).forEach { bitCount in
-          let angle = baseDistance + distancePerBit * CGFloat(bitCount) + distancePerBit / 2
-          let x = cos(angle) * radius
-          let y = sin(angle) * radius
-          let point = CGPoint(x: x + size / 2, y: y + size / 2)
+    let center = CGPoint(x: size / 2, y: size / 2)
+    (0...3).forEach { offset in
+      let angle = CGFloat(offset - 1) * CGFloat.pi / 2
+      zip([0.5, 2.5, 4.5].map({mainRadius - lineWidth * $0}), [configuration.version.topLevelBitesCount, configuration.version.middleLevelBitesCount, configuration.version.bottomLevelBitesCount]) .forEach { (radius, bitCount) in
+        let bitAngle = (CGFloat.pi / 2 - startAngle * 2)  / CGFloat(bitCount)
+        (0..<bitCount).forEach { bitIndex in
+          let bitIndexAngle = startAngle + bitAngle * (CGFloat(bitIndex) + 0.5) + angle
+          let x = cos(bitIndexAngle) * radius
+          let y = sin(bitIndexAngle) * radius
+          let point = CGPoint(x: x + center.x, y: y + center.y)
           points.append(point)
         }
       }

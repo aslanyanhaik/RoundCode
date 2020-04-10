@@ -108,6 +108,7 @@ private extension RCImageEncoder {
     let lineWidth = image.size * RCConstants.dotSizeScale / 5 //number of lines including spaces
     let mainRadius = image.size / 2
     let startAngle = asin(image.size * RCConstants.dotSizeScale / mainRadius)
+    let cornerRadiusAngle = asin(lineWidth / mainRadius) / 2
     let center = CGPoint(x: image.size / 2, y: image.size / 2)
     zip([0.5, 2.5, 4.5].map({mainRadius - lineWidth * $0}), [section.topLevel, section.middleLevel, section.bottomLevel]) .forEach { (radius, bitGroups) in
       let bitAngle = (CGFloat.pi / 2 - startAngle * 2)  / CGFloat(bitGroups.map({$0.count}).reduce(0, +))
@@ -115,7 +116,7 @@ private extension RCImageEncoder {
         guard group.bit == .one else { return }
         let startingPosition = startAngle + bitAngle * CGFloat(group.offset) + angle
         let endPosition = startingPosition + bitAngle * CGFloat(group.count)
-        let linePath = UIBezierPath(arcCenter: center, radius: radius, startAngle: startingPosition, endAngle: endPosition, clockwise: true)
+        let linePath = UIBezierPath(arcCenter: center, radius: radius, startAngle: startingPosition + cornerRadiusAngle, endAngle: endPosition - cornerRadiusAngle, clockwise: true)
         let cgPath = CGPath(__byStroking: linePath.cgPath, transform: nil, lineWidth: lineWidth, lineCap: .round, lineJoin: .round, miterLimit: 1.0)!
         let combinedPath = UIBezierPath(cgPath: cgPath)
         path.append(combinedPath)

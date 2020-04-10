@@ -25,7 +25,7 @@ import UIKit
 public final class RCCoder {
   
   public let configuration: RCCoderConfiguration
-  private lazy var imageDecoder = RCImageDecoder(size: 720)
+  private lazy var imageDecoder = RCImageDecoder(size: 720, configuration: self.configuration)
   private lazy var imageEncoder = RCImageEncoder(configuration: self.configuration)
   private lazy var bitCoder = RCBitCoder(configuration: self.configuration)
   
