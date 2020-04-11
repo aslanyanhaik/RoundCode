@@ -27,7 +27,7 @@ public final class RCCameraViewController: UIViewController, UIImagePickerContro
   
   //MARK: Public properties
   public weak var delegate: RCCameraViewControllerDelegate?
-  public var configuration = RCCoderConfiguration.defaultConfiguration
+  public var configuration = RCCoderConfiguration.shortConfiguration
   override public var supportedInterfaceOrientations: UIInterfaceOrientationMask {
     .portrait
   }
@@ -35,9 +35,7 @@ public final class RCCameraViewController: UIViewController, UIImagePickerContro
     true
   }
   //Private properties
-  private lazy var coder: RCCoder = {
-    RCCoder(configuration: self.configuration)
-  }()
+  private lazy var coder: RCCoder = RCCoder(configuration: self.configuration)
   private var captureSession = AVCaptureSession()
   private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
   private var maskLayer = CAShapeLayer()
@@ -147,7 +145,7 @@ extension RCCameraViewController {
     guard let captureDevice = AVCaptureDevice.default(for: .video) else { return }
     do {
       captureSession.sessionPreset = .hd1280x720
-      coder.set(size: 720)
+      coder.size = 720
       calculateScanArea()
       let input = try AVCaptureDeviceInput(device: captureDevice)
       input.device.activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: 30)
@@ -162,11 +160,11 @@ extension RCCameraViewController {
   }
   
   private func calculateScanArea() {
-    let actualWidth = view.frame.height / 16 * 9
-    var sideArea: CGFloat = min(view.bounds.width, view.bounds.height) * 0.9 * 0.2
-    sideArea += (actualWidth - min(view.bounds.width, view.bounds.height) * 0.9) / 2
-    let area = sideArea / min(view.bounds.width, view.bounds.height) * 720
-    coder.set(scanArea: Int(area))
+//    let actualWidth = view.frame.height / 16 * 9
+//    var sideArea: CGFloat = min(view.bounds.width, view.bounds.height) * 0.9 * 0.2
+//    sideArea += (actualWidth - min(view.bounds.width, view.bounds.height) * 0.9) / 2
+//    let area = sideArea / min(view.bounds.width, view.bounds.height) * 720
+//    coder.set(scanArea: Int(area))
   }
   
   private func configureVideoPreview(orientation: AVCaptureVideoOrientation = .portrait) {
@@ -194,6 +192,7 @@ extension RCCameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     let lumaBaseAddress = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0)?.advanced(by: bytesPerRow * origin)
     let lumaCopy = UnsafeMutableRawPointer.allocate(byteCount: bytesPerRow * size, alignment: MemoryLayout<UInt8>.alignment)
     lumaCopy.copyMemory(from: lumaBaseAddress!, byteCount: bytesPerRow * size)
+    coder.bytesPerRow = bytesPerRow
     if let message = try? coder.decode(buffer: lumaCopy.assumingMemoryBound(to: UInt8.self)) {
       delegate?.cameraViewController(self, didFinishPickingScanning: message)
       dismiss(animated: true)

@@ -28,6 +28,18 @@ public final class RCCoder {
   private lazy var imageDecoder = RCImageDecoder(size: 720, configuration: self.configuration)
   private lazy var imageEncoder = RCImageEncoder(configuration: self.configuration)
   private lazy var bitCoder = RCBitCoder(configuration: self.configuration)
+  internal var size: Int {
+    get { imageDecoder.size}
+    set { imageDecoder.size = newValue }
+  }
+  internal var padding: Int {
+    get { imageDecoder.padding }
+    set { imageDecoder.padding = newValue }
+  }
+  internal var bytesPerRow: Int {
+    get { imageDecoder.bytesPerRow }
+    set { imageDecoder.bytesPerRow = newValue }
+  }
   
   public init(configuration: RCCoderConfiguration = .shortConfiguration) {
     self.configuration = configuration
@@ -59,13 +71,5 @@ extension RCCoder {
     let bits = try imageDecoder.process(pointer: buffer)
     let message = try bitCoder.decode(bits)
     return message
-  }
-  
-  func set(size: Int) {
-    imageDecoder.size = size
-  }
-  
-  func set(scanArea: Int) {
-    imageDecoder.padding = scanArea
   }
 }
