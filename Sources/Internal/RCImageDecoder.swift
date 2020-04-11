@@ -65,7 +65,7 @@ extension RCImageDecoder {
   func decode(_ image: UIImage, size: Int) throws -> [RCBit] {
     self.size = size
     let pixelData = UnsafeMutableRawPointer.allocate(byteCount: size * size, alignment: MemoryLayout<UInt8>.alignment)
-    let context = generateContext(data: pixelData)
+    let context = generateContext(data: pixelData, size: size)
     context?.draw(image.cgImage!, in: CGRect(origin: .zero, size: CGSize(width: size, height: size)))
     let bits = try process(pointer: pixelData.assumingMemoryBound(to: UInt8.self))
     pixelData.deallocate()
@@ -168,7 +168,7 @@ extension RCImageDecoder {
   }
   
   private func fixPerspective(_ data: UnsafeMutablePointer<UInt8>, points: [CGPoint]) throws -> CGImage {
-    guard let context = generateContext(data: data), let cgImage = context.makeImage() else {
+    guard let context = generateContext(data: data, size: size), let cgImage = context.makeImage() else {
       throw RCError.decoding
     }
     let image = UIGraphicsImageRenderer(size: CGSize(width: CGFloat(size), height: CGFloat(size))).image { context in
@@ -195,7 +195,7 @@ extension RCImageDecoder {
   
   private func decode(_ image: CGImage) -> [RCBit] {
     let pixelData = UnsafeMutableRawPointer.allocate(byteCount: image.width * image.height, alignment: MemoryLayout<UInt8>.alignment)
-    let context = generateContext(data: pixelData)
+    let context = generateContext(data: pixelData, size: image.width)
     context?.draw(image, in: CGRect(origin: .zero, size: CGSize(width: image.width, height: image.height)))
     let buffer = UnsafeMutableBufferPointer<UInt8>(start: pixelData.assumingMemoryBound(to: UInt8.self), count: image.width * image.height)
     let data = PixelContainer(rows: image.height, items: buffer)
@@ -218,15 +218,15 @@ extension RCImageDecoder {
         }
       }
     }
-    let bits = points.map { data[Int($0.x), Int($0.y)] > 200 ? RCBit.zero : RCBit.one }
+    let bits = points.map { data[Int($0.x), Int($0.y)] > RCConstants.pixelThreshold ? RCBit.zero : RCBit.one }
     pixelData.deallocate()
     return bits
   }
 }
 
 extension RCImageDecoder {
-  private func generateContext(data: UnsafeMutableRawPointer?) -> CGContext? {
-    return  CGContext(data: data, width: self.size, height: self.size, bitsPerComponent: 8, bytesPerRow: self.size, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
+  private func generateContext(data: UnsafeMutableRawPointer?, size: Int) -> CGContext? {
+    return  CGContext(data: data, width: size, height: size, bitsPerComponent: 8, bytesPerRow: size, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
   }
 }
 

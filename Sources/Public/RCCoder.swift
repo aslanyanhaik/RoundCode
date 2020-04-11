@@ -29,7 +29,7 @@ public final class RCCoder {
   private lazy var imageEncoder = RCImageEncoder(configuration: self.configuration)
   private lazy var bitCoder = RCBitCoder(configuration: self.configuration)
   
-  public init(configuration: RCCoderConfiguration = .defaultConfiguration) {
+  public init(configuration: RCCoderConfiguration = .shortConfiguration) {
     self.configuration = configuration
   }
 }

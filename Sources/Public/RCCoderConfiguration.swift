@@ -67,26 +67,24 @@ public extension RCCoderConfiguration {
     case v1
 
     var maxBitesPerSection: Int {
-      switch self {
-        case .v1: return 72
-      }
+      topLevelBitesCount + middleLevelBitesCount + bottomLevelBitesCount //should be multiple of 8
     }
     
     var topLevelBitesCount: Int {
       switch self {
-        case .v1: return 24
+        case .v1: return 16
       }
     }
     
     var middleLevelBitesCount: Int {
       switch self {
-        case .v1: return 24
+        case .v1: return 16
       }
     }
     
     var bottomLevelBitesCount: Int {
       switch self {
-        case .v1: return 24
+        case .v1: return 16
       }
     }
     
