@@ -25,23 +25,11 @@ import UIKit
 public final class RCCoder {
   
   public let configuration: RCCoderConfiguration
-  private lazy var imageDecoder = RCImageDecoder(size: 720, configuration: self.configuration)
-  private lazy var imageEncoder = RCImageEncoder(configuration: self.configuration)
-  private lazy var bitCoder = RCBitCoder(configuration: self.configuration)
-  internal var size: Int {
-    get { imageDecoder.size}
-    set { imageDecoder.size = newValue }
-  }
-  internal var padding: Int {
-    get { imageDecoder.padding }
-    set { imageDecoder.padding = newValue }
-  }
-  internal var bytesPerRow: Int {
-    get { imageDecoder.bytesPerRow }
-    set { imageDecoder.bytesPerRow = newValue }
-  }
+  internal lazy var imageDecoder = RCImageDecoder(configuration: self.configuration)
+  internal lazy var imageEncoder = RCImageEncoder(configuration: self.configuration)
+  internal lazy var bitCoder = RCBitCoder(configuration: self.configuration)
   
-  public init(configuration: RCCoderConfiguration = .shortConfiguration) {
+  public init(configuration: RCCoderConfiguration = .defaultConfiguration) {
     self.configuration = configuration
   }
 }
@@ -55,7 +43,10 @@ public extension RCCoder {
   
   func decode(_ image: UIImage) throws -> String {
     guard image.size.width == image.size.height else { throw RCError.wrongImageSize }
-    let bits = try imageDecoder.decode(image, size: image.cgImage!.height)
+    imageDecoder.size = image.cgImage!.height
+    imageDecoder.padding = 0
+    imageDecoder.bytesPerRow = image.cgImage!.height
+    let bits = try imageDecoder.decode(image)
     let message = try bitCoder.decode(bits)
     return message
   }

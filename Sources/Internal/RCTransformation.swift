@@ -23,7 +23,7 @@
 import simd
 import QuartzCore
 
-final class RCTransformation {
+struct RCTransformation {
   
   private let vectors: [SIMD3<Double>]
   private static let zeroColumnBeforeLast: double4x3 = {

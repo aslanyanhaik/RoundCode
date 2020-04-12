@@ -22,18 +22,14 @@
 
 import UIKit
 
-final class RCImageDecoder {
+struct RCImageDecoder {
   
-  var size: Int
-  var padding = 0
-  lazy var bytesPerRow = self.size
-  let configuration: RCCoderConfiguration
-  private let sectionSize: Int
-  
-  init(size: Int, configuration: RCCoderConfiguration) {
-    self.size = size
-    sectionSize = size / 5
-    self.configuration = configuration
+  internal let configuration: RCCoderConfiguration
+  internal var size = 720
+  internal var bytesPerRow = 720
+  internal var padding = 0
+  private var sectionSize: Int {
+    self.size / 5
   }
 }
 
@@ -63,9 +59,7 @@ extension RCImageDecoder {
     return bits
   }
   
-  func decode(_ image: UIImage, size: Int) throws -> [RCBit] {
-    self.size = size
-    self.bytesPerRow = size
+  func decode(_ image: UIImage) throws -> [RCBit] {
     let pixelData = UnsafeMutableRawPointer.allocate(byteCount: size * size, alignment: MemoryLayout<UInt8>.alignment)
     let context = generateContext(data: pixelData, size: size, bytesPerRow: self.bytesPerRow)
     context?.draw(image.cgImage!, in: CGRect(origin: .zero, size: CGSize(width: size, height: size)))

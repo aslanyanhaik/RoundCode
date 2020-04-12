@@ -22,7 +22,7 @@
 
 import Foundation
 
-final class RCBitCoder {
+struct RCBitCoder {
   
   private let configuration: RCCoderConfiguration
   

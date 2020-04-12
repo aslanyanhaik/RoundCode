@@ -22,7 +22,7 @@
 
 import UIKit
 
-final class RCImageEncoder {
+struct RCImageEncoder {
   
   let configuration: RCCoderConfiguration
   
