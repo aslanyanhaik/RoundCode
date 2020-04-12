@@ -45,21 +45,13 @@ public struct RCCoderConfiguration {
     return text.map({$0}).allSatisfy({characters.contains($0) && !specialCharacters.contains($0)}) && text.count <= maxMessageCount
   }
   
-  public static var uuidConfiguration: RCCoderConfiguration {
-    return RCCoderConfiguration(characters: "-ABCDEF0123456789")
-  }
+  public static let uuidConfiguration = RCCoderConfiguration(characters: "-ABCDEF0123456789")
   
-  public static var numericConfiguration: RCCoderConfiguration {
-    return RCCoderConfiguration(characters: ".,_0123456789")
-  }
+  public static let numericConfiguration = RCCoderConfiguration(characters: ".,_0123456789")
   
-  public static var shortConfiguration: RCCoderConfiguration {
-    return RCCoderConfiguration(characters: " -abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-  }
+  public static let shortConfiguration = RCCoderConfiguration(characters: " -abcdefghijklmnopqrstuvwxyz0123456789")
   
-  public static var defaultConfiguration: RCCoderConfiguration {
-    return RCCoderConfiguration(characters: ##"! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"##)
-  }
+  public static let defaultConfiguration = RCCoderConfiguration(characters: ##"! "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"##)
 }
 
 public extension RCCoderConfiguration {
