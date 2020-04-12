@@ -170,11 +170,9 @@ extension RCCameraViewController {
   }
   
   private func calculateScanArea() {
-//    let actualWidth = view.frame.height / 16 * 9
-//    var sideArea: CGFloat = min(view.bounds.width, view.bounds.height) * 0.9 * 0.2
-//    sideArea += (actualWidth - min(view.bounds.width, view.bounds.height) * 0.9) / 2
-//    let area = sideArea / min(view.bounds.width, view.bounds.height) * 720
-//    coder.set(scanArea: Int(area))
+    let actualWidth = view.frame.height / 16 * 9
+    let sideArea = (actualWidth - view.frame.width * 0.9) / 2
+    coder.imageDecoder.padding = Int(sideArea / actualWidth * 720)
   }
   
   private func configureVideoPreview(orientation: AVCaptureVideoOrientation = .portrait) {
