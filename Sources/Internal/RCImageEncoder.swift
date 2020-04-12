@@ -65,10 +65,19 @@ struct RCImageEncoder {
       mainPath.usesEvenOddFillRule = true
       mainPath.addClip()
       let colorSpace = CGColorSpaceCreateDeviceRGB()
-      let gradient = CGGradient(colorsSpace: colorSpace, colors: image.tintColors.map({$0.cgColor}) as CFArray, locations: nil)!
+      var colors = image.tintColors
+      if colors.count == 0 {
+        colors = [.black, .black]
+      }
+      if colors.count == 1 {
+        colors.append(colors.first!.copy() as! UIColor)
+      }
+      let gradient = CGGradient(colorsSpace: colorSpace, colors: colors.map({$0.cgColor}) as CFArray, locations: nil)!
       switch image.gradientType {
-        case .linear:
-          cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: image.size, y: image.size), options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
+        case .linear(let angle):
+          let start = CGPoint(x: image.size / 2 - cos(angle) * image.size / 2, y: image.size / 2 - sin(angle) * image.size / 2)
+          let end = CGPoint(x: image.size / 2 + cos(angle) * image.size / 2, y: image.size / 2 + sin(angle) * image.size / 2)
+          cgContext.drawLinearGradient(gradient, start: start, end: end, options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
         case .radial:
           let startPoint = CGPoint(x: image.size / 2, y: image.size / 2)
           cgContext.drawRadialGradient(gradient, startCenter: startPoint, startRadius: image.size * (1 - RCConstants.dotSizeScale) / 2, endCenter: startPoint, endRadius: image.size / 2, options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])

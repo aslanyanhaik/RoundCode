@@ -29,7 +29,7 @@ public struct RCImage {
   public var tintColors: [UIColor] = [.orange, .magenta]
   public var attachmentImage: UIImage?
   public var isTransparent = false
-  public var gradientType = GradientType.linear(angle: CGFloat.pi / 2)
+  public var gradientType = GradientType.linear(angle: CGFloat.pi / 4)
   public var contentInsets = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
   
   public init(message: String) {
