@@ -35,6 +35,7 @@ public final class RCCameraViewController: UIViewController, UIImagePickerContro
     true
   }
   //Private properties
+  private var brightness = CGFloat(0)
   private var captureSession = AVCaptureSession()
   private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
   private var maskLayer = CAShapeLayer()
@@ -75,8 +76,8 @@ public final class RCCameraViewController: UIViewController, UIImagePickerContro
 }
 
 //MARK: ViewController lifecycle
-extension RCCameraViewController {
-  public override func viewDidLoad() {
+public extension RCCameraViewController {
+  override func viewDidLoad() {
     super.viewDidLoad()
     configureMaskLayer()
     configureVideoStream()
@@ -86,17 +87,28 @@ extension RCCameraViewController {
     configureCancelButton()
   }
   
-  public override func viewWillAppear(_ animated: Bool) {
+  override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
     captureSession.startRunning()
   }
   
-  public override func viewWillDisappear(_ animated: Bool) {
+  override func viewWillDisappear(_ animated: Bool) {
     super.viewWillDisappear(animated)
     captureSession.stopRunning()
   }
   
-  public override func viewDidLayoutSubviews() {
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
+    brightness = UIScreen.main.brightness
+    UIScreen.main.setBrightness(to: 1.0)
+  }
+  
+  override func viewDidDisappear(_ animated: Bool) {
+    super.viewDidDisappear(animated)
+    UIScreen.main.setBrightness(to: brightness)
+  }
+  
+  override func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
     configureMaskLayer()
     videoPreviewLayer?.frame = view.bounds
