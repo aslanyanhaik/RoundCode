@@ -25,7 +25,6 @@ import Foundation
 enum RCError: String, LocalizedError {
   case invalidCharacter
   case longText
-  case wrongConfiguration
   case decoding
   case wrongImageSize
 
@@ -35,12 +34,10 @@ enum RCError: String, LocalizedError {
         return "message contains character which is not in characterSet"
       case .longText:
         return "message characters count exceeds configuration maximum characters"
-      case .wrongConfiguration:
-        return "Error decoding. The configuration is not matching to encoded image"
       case .decoding:
-        return "Error decoding."
+        return "Error decoding"
       case .wrongImageSize:
-        return "Error decoding. Image size must be a square"
+        return "Error decoding. Image width and height must be a equal"
     }
   }
 }

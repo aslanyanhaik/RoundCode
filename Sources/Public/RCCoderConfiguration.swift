@@ -37,6 +37,7 @@ public struct RCCoderConfiguration {
     self.characters = charactersArray
     self.bitesPerSymbol = String(charactersArray.count - 1, radix: 2).count
     self.maxMessageCount = version.maxBitesPerSection * 3 / bitesPerSymbol - 1
+    guard self.maxMessageCount > 0 else { fatalError("Cannot fit characters") }
   }
   
   func validate(_ text: String) -> Bool {
