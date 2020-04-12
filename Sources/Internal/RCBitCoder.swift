@@ -49,9 +49,9 @@ extension RCBitCoder {
     //adding staring character index and filling with special indexes
     indexes.insert(configuration.characters.firstIndex(of: configuration.version.startingCharacter)!, at: 0)
     let emptyIndexes = configuration.version.emptyCharacters.map({configuration.characters.firstIndex(of: $0)!})
-    let randomBytes = (0..<configuration.maxMessageCount).map({_ in emptyIndexes[Int.random(in: 0..<emptyIndexes.count)]})
+    let randomBytes = (0...configuration.maxMessageCount).map({_ in emptyIndexes[Int.random(in: 0..<emptyIndexes.count)]})
     indexes.append(contentsOf: randomBytes)
-    indexes = Array(indexes.prefix(configuration.maxMessageCount))
+    indexes = Array(indexes.prefix(configuration.maxMessageCount + 1))
     //encoding into bits
     let encodedBits = indexes.map { byte -> [RCBit] in
       var stringValue = String(repeating: "0", count: configuration.bitesPerSymbol)
@@ -96,7 +96,7 @@ extension RCBitCoder {
     //mapping to custom size byte
     let bytes = stride(from: 0, to: dataBits.count, by: configuration.bitesPerSymbol).map {
       Array(dataBits[$0 ..< min($0 + configuration.bitesPerSymbol, dataBits.count)])
-    }.prefix(configuration.maxMessageCount)
+    }.prefix(configuration.maxMessageCount + 1)
     //converting binary into decimal
     let indexes = bytes.map({ bits in
       return bits.reduce(0) { accumulated, current in

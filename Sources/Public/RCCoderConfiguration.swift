@@ -36,7 +36,7 @@ public struct RCCoderConfiguration {
     charactersArray.append(contentsOf: version.emptyCharacters)
     self.characters = charactersArray
     self.bitesPerSymbol = String(charactersArray.count - 1, radix: 2).count
-    self.maxMessageCount = version.maxBitesPerSection * 3 / bitesPerSymbol
+    self.maxMessageCount = version.maxBitesPerSection * 3 / bitesPerSymbol - 1
   }
   
   func validate(_ text: String) -> Bool {
