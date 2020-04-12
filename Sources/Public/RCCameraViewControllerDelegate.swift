@@ -24,13 +24,13 @@ import Foundation
 
 public protocol RCCameraViewControllerDelegate: class {
   
-  func cameraViewController(_ controller: RCCameraViewController, didFinishPickingScanning message: String)
-  func cameraViewControllerDidCancel(_ controller: RCCameraViewController)
+  func cameraViewController(didFinishPickingScanning message: String)
+  func cameraViewControllerDidCancel()
   
 }
 
 public extension RCCameraViewControllerDelegate {
   
-  func cameraViewControllerDidCancel(_ controller: RCCameraViewController) {}
+  func cameraViewControllerDidCancel() {}
   
 }

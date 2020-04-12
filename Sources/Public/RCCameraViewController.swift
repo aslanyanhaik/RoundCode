@@ -27,7 +27,7 @@ public final class RCCameraViewController: UIViewController, UIImagePickerContro
   
   //MARK: Public properties
   public weak var delegate: RCCameraViewControllerDelegate?
-  public var configuration = RCCoderConfiguration.shortConfiguration
+  public var coder = RCCoder()
   override public var supportedInterfaceOrientations: UIInterfaceOrientationMask {
     .portrait
   }
@@ -35,7 +35,6 @@ public final class RCCameraViewController: UIViewController, UIImagePickerContro
     true
   }
   //Private properties
-  private lazy var coder: RCCoder = RCCoder(configuration: self.configuration)
   private var captureSession = AVCaptureSession()
   private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
   private var maskLayer = CAShapeLayer()
@@ -120,9 +119,9 @@ extension RCCameraViewController {
   }
   
   @objc private func cancelPressed() {
-    dismiss(animated: true) {
-      self.delegate?.cameraViewControllerDidCancel(self)
-    }
+    captureSession.stopRunning()
+    delegate?.cameraViewControllerDidCancel()
+    dismiss(animated: true)
   }
   
   private func configureMaskLayer() {
@@ -145,7 +144,6 @@ extension RCCameraViewController {
     guard let captureDevice = AVCaptureDevice.default(for: .video) else { return }
     do {
       captureSession.sessionPreset = .hd1280x720
-      coder.size = 720
       calculateScanArea()
       let input = try AVCaptureDeviceInput(device: captureDevice)
       input.device.activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: 30)
@@ -192,9 +190,11 @@ extension RCCameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     let lumaBaseAddress = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0)?.advanced(by: bytesPerRow * origin)
     let lumaCopy = UnsafeMutableRawPointer.allocate(byteCount: bytesPerRow * size, alignment: MemoryLayout<UInt8>.alignment)
     lumaCopy.copyMemory(from: lumaBaseAddress!, byteCount: bytesPerRow * size)
-    coder.bytesPerRow = bytesPerRow
+    coder.imageDecoder.size = size
+    coder.imageDecoder.bytesPerRow = bytesPerRow
     if let message = try? coder.decode(buffer: lumaCopy.assumingMemoryBound(to: UInt8.self)) {
-      delegate?.cameraViewController(self, didFinishPickingScanning: message)
+      captureSession.stopRunning()
+      delegate?.cameraViewController(didFinishPickingScanning: message)
       dismiss(animated: true)
     }
     lumaCopy.deallocate()
