@@ -22,13 +22,13 @@
 
 import Foundation
 
-enum RCError: String, LocalizedError {
+public enum RCError: String, LocalizedError {
   case invalidCharacter
   case longText
   case decoding
   case wrongImageSize
 
-  var errorDescription: String? {
+  public var errorDescription: String? {
     switch self {
       case .invalidCharacter:
         return "message contains character which is not in characterSet"
