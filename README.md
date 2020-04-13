@@ -11,7 +11,7 @@ RoundCode is a Facebook messenger like custom barcode with lots of customization
 In addition to encoder the RoundCode also includes convenient camera scanner and decoder.
 
 <h3 align="center">
-<img src="screenshot.gif" alt="Screenshot of RoundCode for iOS"/>
+<img src="appearance.png" alt="Different styles of RoundCode for iOS"/>
 </h3>
 
 ## Installation
@@ -101,10 +101,6 @@ image.gradientType = .linear(angle: CGFloat.pi)
 image.tintColors = [.red, .black]
 ```
 
-<h3 align="center">
-<img src="appearance.png" alt="Different styles of RoundCode for iOS"/>
-</h3>
-
 ⚠️ When choosing colors or transparent background you should keep in mind that decoder will detect the code on light background with dark colors ⚠️
 
 ### Advanced
@@ -135,6 +131,10 @@ camera.coder = coder
 Written in Swift 5 and requires Xcode 11.0
 
 RoundCode is compatible with iOS 13.0+.
+
+<h3 align="center">
+<img src="screenshot.gif" alt="Screenshot of RoundCode for iOS"/>
+</h3>
 
 ## Author
 
