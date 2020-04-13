@@ -3,12 +3,12 @@ Pod::Spec.new do |s|
   s.version          = '1.0.0'
   s.summary          = 'Facebook messenger style custom barcode.'
   s.description      = <<-DESC
-                     Facebook messenger style custom barcode.
+                     Encode and decode data into custom stylish barcode.
                      DESC
   s.homepage         = 'https://github.com/aslanyanhaik/RoundCode'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
   s.author           = { 'Haik Aslanyan' => 'aslanyanhaik@gmail.com' }
-  s.source           = { :git => 'https://github.com/aslanyanhaik/RoundCode', :tag => s.version.to_s }
+  s.source           = { :git => 'https://github.com/aslanyanhaik/RoundCode.git', :tag => s.version.to_s }
   s.ios.deployment_target = '13.0'
   s.source_files = 'Sources/**/*.swift'
   s.frameworks = 'UIKit'
