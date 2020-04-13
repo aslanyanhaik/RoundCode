@@ -1,6 +1,6 @@
 # RoundCode for iOS
 
-[![License](http://img.shields.io/badge/License-MIT-green.svg?style=flat)](https://github.com/aslanyanhaik/Quick-Chat/blob/master/LICENSE)
+[![License](http://img.shields.io/badge/License-MIT-green.svg?style=flat)](https://github.com/aslanyanhaik/RoundCode/blob/master/LICENSE)
 [![Swift 5](https://img.shields.io/badge/Swift-5.0-orange.svg?style=flat)](https://swift.org)
 [![Twitter: @aslanyanhaik](https://img.shields.io/badge/Contact-Twitter-blue.svg?style=flat)](https://twitter.com/aslanyanhaik)
 
