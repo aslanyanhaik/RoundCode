@@ -11,7 +11,7 @@ RoundCode is a Facebook messenger like custom barcode with lots of customization
 In addition to encoder the RoundCode also includes convenient camera scanner and decoder.
 
 <h3 align="center">
-<img src="screenshot.png" alt="Screenshot of RoundCode for iOS"/>
+<img src="screenshot.gif" alt="Screenshot of RoundCode for iOS"/>
 </h3>
 
 ## Installation
