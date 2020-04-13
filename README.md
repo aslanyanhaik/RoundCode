@@ -6,7 +6,7 @@
 
 
 
-RoundCode is a Facebook messenger like custom barcode with lots of customization. 
+RoundCode is a Facebook messenger like custom QR code with lots of customization. 
 
 In addition to encoder the RoundCode also includes convenient camera scanner and decoder.
 
