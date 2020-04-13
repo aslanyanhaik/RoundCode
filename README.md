@@ -102,7 +102,7 @@ image.tintColors = [.red, .black]
 ```
 
 <h3 align="center">
-<img src="appearance.jpg" alt="Different styles of RoundCode for iOS"/>
+<img src="appearance.png" alt="Different styles of RoundCode for iOS"/>
 </h3>
 
 ⚠️ When choosing colors or transparent background you should keep in mind that decoder will detect the code on light background with dark colors ⚠️
