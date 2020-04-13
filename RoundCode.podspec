@@ -13,5 +13,5 @@ Pod::Spec.new do |s|
   s.source_files = 'Sources/**/*.swift'
   s.frameworks = 'UIKit'
   s.social_media_url = 'http://twitter.com/aslanyanhaik'
-  s.frameworks = 'UIKit'
+  s.swift_versions = ['5.1', '5.2']
 end
