@@ -71,7 +71,7 @@ class ViewController: UIViewController, RCCameraViewControllerDelegate {
     present(cameraController, animated: true)
   }
   
-  func cameraViewController(didFinishPickingScanning message: String) {
+  func cameraViewController(didFinishScanning message: String) {
     messageLabel.text = message
   }
 }

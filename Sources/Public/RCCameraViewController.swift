@@ -204,7 +204,7 @@ extension RCCameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     coder.imageDecoder.bytesPerRow = bytesPerRow
     if let message = try? coder.decode(buffer: lumaCopy.assumingMemoryBound(to: UInt8.self)) {
       captureSession.stopRunning()
-      delegate?.cameraViewController(didFinishPickingScanning: message)
+      delegate?.cameraViewController(didFinishScanning: message)
       dismiss(animated: true)
     }
     lumaCopy.deallocate()
