@@ -42,8 +42,9 @@ public final class RCCameraViewController: UIViewController, UIImagePickerContro
   private var circleLayer = CAShapeLayer()
   private lazy var cameraView: UIView = {
     let cameraView = UIView()
-    cameraView.backgroundColor = .black
+    cameraView.backgroundColor = .clear
     self.view.addSubview(cameraView)
+    cameraView.translatesAutoresizingMaskIntoConstraints = false
     cameraView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 0).isActive = true
     cameraView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: 0).isActive = true
     cameraView.topAnchor.constraint(equalTo: self.view.topAnchor, constant: 0).isActive = true
