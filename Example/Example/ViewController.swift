@@ -44,10 +44,10 @@ extension ViewController {
   
   @IBAction func share(_ sender: Any) {
     image.size = 1000
-    //    image.contentInsets = UIEdgeInsets(top: 100, left: 100, bottom: 100, right: 100)
+    image.contentInsets = UIEdgeInsets(top: 100, left: 100, bottom: 100, right: 100)
     let uiImage = try? coder.encode(image)
     image.size = 300
-    image.contentInsets = .zero
+    image.contentInsets = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
     let vc = UIActivityViewController.init(activityItems: [uiImage!], applicationActivities: nil)
     present(vc, animated: true)
   }
