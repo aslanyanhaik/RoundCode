@@ -17,7 +17,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		22C936CC2447221100128DE6 /* Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		22C936CC2447221100128DE6 /* Round Code.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Round Code.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		22C936CF2447221100128DE6 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		22C936D12447221100128DE6 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		22C936D32447221100128DE6 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -51,7 +51,7 @@
 		22C936CD2447221100128DE6 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				22C936CC2447221100128DE6 /* Example.app */,
+				22C936CC2447221100128DE6 /* Round Code.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -97,7 +97,7 @@
 				22C936E42447225600128DE6 /* RoundCode */,
 			);
 			productName = Example;
-			productReference = 22C936CC2447221100128DE6 /* Example.app */;
+			productReference = 22C936CC2447221100128DE6 /* Round Code.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -306,7 +306,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.roundcode.example;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "Round Code";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -325,7 +325,7 @@
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.roundcode.example;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "Round Code";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

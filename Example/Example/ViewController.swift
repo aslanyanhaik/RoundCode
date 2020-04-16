@@ -36,6 +36,11 @@ class ViewController: UIViewController {
 
 extension ViewController {
   
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    image.isTransparent = true
+  }
+  
   @IBAction func scan(_ sender: Any) {
     let vc = RCCameraViewController()
     vc.delegate = self
@@ -44,10 +49,12 @@ extension ViewController {
   
   @IBAction func share(_ sender: Any) {
     image.size = 1000
-    image.contentInsets = UIEdgeInsets(top: 100, left: 100, bottom: 100, right: 100)
+    image.isTransparent = false
+    image.contentInsets = UIEdgeInsets(top: 50, left: 50, bottom: 50, right: 50)
     let uiImage = try? coder.encode(image)
     image.size = 300
     image.contentInsets = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
+    image.isTransparent = true
     let vc = UIActivityViewController.init(activityItems: [uiImage!], applicationActivities: nil)
     present(vc, animated: true)
   }

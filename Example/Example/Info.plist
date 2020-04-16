@@ -22,6 +22,8 @@
 	<true/>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>To scan roundcodes</string>
+  <key>NSPhotoLibraryAddUsageDescription</key>
+  <string>To save RoundCode images</string>
 	<key>NSCameraUsageDescription</key>
 	<string>To scan roundcodes</string>
 	<key>UIApplicationSceneManifest</key>
