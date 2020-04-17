@@ -24,13 +24,12 @@ import Foundation
 
 public struct RCCoderConfiguration {
   
-  public let version: Version
+  public let version = Version.v1
   public let maxMessageCount: Int
   public let bitesPerSymbol: Int
   public let characters: [Character]
   
-  public init(version: Version = .v1, characters: String) {
-    self.version = version
+  public init(characters: String) {
     var charactersArray = characters.map({$0})
     charactersArray.append(version.startingCharacter)
     charactersArray.append(contentsOf: version.emptyCharacters)
