@@ -54,14 +54,16 @@ extension RCImageDecoder {
           points.append(point)
       }
     }
-    let image = try fixPerspective(pointer, points: points)
-    let bits = decode(image)
+    let transform = calculateTransform(from: points)
+    let mapper = RCPointMapper(transform: transform, size: size)
+    let locations = mapper.map(points: calculateBitLocations())
+    let bits = locations.map { data[Int($0.x), Int($0.y)] > RCConstants.pixelThreshold ? RCBit.zero : RCBit.one }
     return bits
   }
   
   func decode(_ image: UIImage) throws -> [RCBit] {
     let pixelData = UnsafeMutableRawPointer.allocate(byteCount: size * size, alignment: MemoryLayout<UInt8>.alignment)
-    let context = generateContext(data: pixelData, size: size, bytesPerRow: self.bytesPerRow)
+    let context = CGContext(data: pixelData, width: size, height: size, bitsPerComponent: 8, bytesPerRow: bytesPerRow, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
     context?.draw(image.cgImage!, in: CGRect(origin: .zero, size: CGSize(width: size, height: size)))
     let bits = try process(pointer: pixelData.assumingMemoryBound(to: UInt8.self))
     pixelData.deallocate()
@@ -163,42 +165,21 @@ extension RCImageDecoder {
     }.first!
   }
   
-  private func fixPerspective(_ data: UnsafeMutablePointer<UInt8>, points: [CGPoint]) throws -> CGImage {
-    guard let context = generateContext(data: data, size: size, bytesPerRow: bytesPerRow), let cgImage = context.makeImage() else {
-      throw RCError.decoding
-    }
-    let image = UIGraphicsImageRenderer(size: CGSize(width: CGFloat(size), height: CGFloat(size))).image { context in
-      let baseView = UIView(frame: context.format.bounds)
-      let imageView = UIImageView(frame: context.format.bounds)
-      baseView.addSubview(imageView)
-      imageView.image = UIImage(cgImage: cgImage)
-      imageView.layer.anchorPoint = .zero
-      imageView.layer.frame = context.format.bounds
-      let perspective = RCTransformation(points)
-      let destination = RCTransformation([CGPoint(x: context.format.bounds.minX, y: context.format.bounds.midY),
-                                          CGPoint(x: context.format.bounds.midX, y: context.format.bounds.minY),
-                                          CGPoint(x: context.format.bounds.midX, y: context.format.bounds.maxY),
-                                          CGPoint(x: context.format.bounds.maxX, y: context.format.bounds.midY)])
-      let transform = perspective.perspectiveTransform(to: destination)
-      imageView.transform3D = transform
-      baseView.drawHierarchy(in: context.format.bounds, afterScreenUpdates: true)
-    }
-    guard let renderImage = image.cgImage else {
-      throw RCError.decoding
-    }
-    return renderImage
+  private func calculateTransform(from points: [CGPoint]) -> CATransform3D {
+    let perspective = RCTransformation(points)
+    let middleRect = CGRect(origin: .zero, size: CGSize(width: CGFloat(size), height: CGFloat(size)))
+    let destination = RCTransformation([CGPoint(x: middleRect.minX, y: middleRect.midY),
+                                        CGPoint(x: middleRect.midX, y: middleRect.minY),
+                                        CGPoint(x: middleRect.midX, y: middleRect.maxY),
+                                        CGPoint(x: middleRect.maxX, y: middleRect.midY)])
+    return perspective.perspectiveTransform(to: destination)
   }
   
-  private func decode(_ image: CGImage) -> [RCBit] {
-    let pixelData = UnsafeMutableRawPointer.allocate(byteCount: image.width * image.height, alignment: MemoryLayout<UInt8>.alignment)
-    let context = generateContext(data: pixelData, size: image.width, bytesPerRow: image.width)
-    context?.draw(image, in: CGRect(origin: .zero, size: CGSize(width: image.width, height: image.height)))
-    let buffer = UnsafeMutableBufferPointer<UInt8>(start: pixelData.assumingMemoryBound(to: UInt8.self), count: image.width * image.height)
-    let data = PixelContainer(rows: image.height, items: buffer)
-    let size = CGFloat(data.columns)
-    let lineWidth = CGFloat(image.height) * RCConstants.dotSizeScale / 5 //number of lines including spaces
-    let mainRadius = CGFloat(image.height) / 2
-    let startAngle = asin(CGFloat(image.height) * RCConstants.dotSizeScale / mainRadius)
+  private func calculateBitLocations() -> [CGPoint] {
+    let size = CGFloat(self.size)
+    let lineWidth = size * RCConstants.dotSizeScale / 5 //number of lines including spaces
+    let mainRadius = size / 2
+    let startAngle = asin(size * RCConstants.dotSizeScale / mainRadius)
     var points = [CGPoint]()
     let center = CGPoint(x: size / 2, y: size / 2)
     (0...3).forEach { offset in
@@ -214,15 +195,7 @@ extension RCImageDecoder {
         }
       }
     }
-    let bits = points.map { data[Int($0.x), Int($0.y)] > RCConstants.pixelThreshold ? RCBit.zero : RCBit.one }
-    pixelData.deallocate()
-    return bits
-  }
-}
-
-extension RCImageDecoder {
-  private func generateContext(data: UnsafeMutableRawPointer?, size: Int, bytesPerRow: Int) -> CGContext? {
-    return  CGContext(data: data, width: size, height: size, bitsPerComponent: 8, bytesPerRow: bytesPerRow, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
+    return points
   }
 }
 
