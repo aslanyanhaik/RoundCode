@@ -31,7 +31,7 @@ class ViewController: UIViewController {
   var coder = RCCoder()
   var image = RCImage(message: "")
   let colors: [[UIColor]] = [[.orange, .gray], [.orange, .magenta], [.systemGreen, .systemBlue], [.orange, .brown], [.purple, .cyan]]
-
+  var isScanningFromLibrary = false
 }
 
 extension ViewController {
@@ -40,6 +40,16 @@ extension ViewController {
     super.viewDidLoad()
     image.isTransparent = true
   }
+  
+  @IBAction func scanImage(_ sender: Any) {
+    isScanningFromLibrary = true
+    let vc = UIImagePickerController()
+    vc.sourceType = .photoLibrary
+    vc.allowsEditing = true
+    vc.delegate = self
+    present(vc, animated: true)
+  }
+  
   
   @IBAction func scan(_ sender: Any) {
     let vc = RCCameraViewController()
@@ -94,8 +104,24 @@ extension ViewController: UINavigationControllerDelegate, UIImagePickerControlle
   
   func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
     let camImage = info[.editedImage] as! UIImage
-    image.attachmentImage = camImage
-    imageView.image = try? coder.encode(image)
+    if isScanningFromLibrary {
+      if let message = try? coder.decode(camImage) {
+        messageLabel.text = message
+        messageLabel.isHidden = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+          self.messageLabel.isHidden = true
+        }
+      }
+    } else {
+      image.attachmentImage = camImage
+      imageView.image = try? coder.encode(image)
+    }
+    isScanningFromLibrary = false
+    picker.dismiss(animated: true)
+  }
+  
+  func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+    isScanningFromLibrary = false
     picker.dismiss(animated: true)
   }
 }
