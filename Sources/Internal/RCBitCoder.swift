@@ -70,7 +70,6 @@ extension RCBitCoder {
   
   
   func decode(_ bits: [RCBit]) throws -> String {
-    guard bits.contains(.one) else { return "" }
     //starting character to bits
     var startingIndexCharacter = String(repeating: "0", count: configuration.bitesPerSymbol)
     startingIndexCharacter += String(configuration.characters.firstIndex(of: configuration.version.startingCharacter)!, radix: 2)
