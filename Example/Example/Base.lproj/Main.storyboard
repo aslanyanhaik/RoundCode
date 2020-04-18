@@ -10,7 +10,7 @@
         <!--View Controller-->
         <scene sceneID="a2g-4i-pyL">
             <objects>
-                <viewController id="0zP-ee-W0J" customClass="ViewController" customModule="RoundCode" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="0zP-ee-W0J" customClass="ViewController" customModule="Round_Code" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="Rvj-Nv-Ukh">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -54,7 +54,7 @@
                             </segmentedControl>
                             <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="pan-9N-son">
                                 <rect key="frame" x="0.0" y="88" width="414" height="774"/>
-                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="32"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
@@ -89,11 +89,18 @@
                                 <action selector="share:" destination="0zP-ee-W0J" id="uNU-bV-PaS"/>
                             </connections>
                         </barButtonItem>
-                        <barButtonItem key="rightBarButtonItem" title="Camera" id="Ckh-RB-Kad">
-                            <connections>
-                                <action selector="scan:" destination="0zP-ee-W0J" id="h78-sA-B0C"/>
-                            </connections>
-                        </barButtonItem>
+                        <rightBarButtonItems>
+                            <barButtonItem title="Camera" id="Ckh-RB-Kad">
+                                <connections>
+                                    <action selector="scan:" destination="0zP-ee-W0J" id="h78-sA-B0C"/>
+                                </connections>
+                            </barButtonItem>
+                            <barButtonItem title="Image" id="rwW-La-cl3">
+                                <connections>
+                                    <action selector="scanImage:" destination="0zP-ee-W0J" id="Cdh-9Q-DD2"/>
+                                </connections>
+                            </barButtonItem>
+                        </rightBarButtonItems>
                     </navigationItem>
                     <connections>
                         <outlet property="imageView" destination="IDN-sg-2ib" id="V1v-sS-seZ"/>
