@@ -30,16 +30,11 @@ class ViewController: UIViewController {
   @IBOutlet weak var messageLabel: UILabel!
   var coder = RCCoder()
   var image = RCImage(message: "")
-  let colors: [[UIColor]] = [[.orange, .gray], [.orange, .magenta], [.systemGreen, .systemBlue], [.orange, .brown], [.purple, .cyan]]
+  let colors: [[UIColor]] = [[.orange, .magenta], [.systemPink, .systemTeal], [.systemTeal, .systemGreen], [.orange, .brown], [.purple, .cyan]]
   var isScanningFromLibrary = false
 }
 
 extension ViewController {
-  
-  override func viewDidLoad() {
-    super.viewDidLoad()
-    image.isTransparent = true
-  }
   
   @IBAction func scanImage(_ sender: Any) {
     isScanningFromLibrary = true
