@@ -57,7 +57,7 @@ extension RCImageDecoder {
     let transform = calculateTransform(from: points)
     let mapper = RCPointMapper(transform: transform, size: size)
     let locations = mapper.map(points: calculateBitLocations())
-    let bits = locations.map { data[Int($0.x), Int($0.y)] > RCConstants.pixelThreshold ? RCBit.zero : RCBit.one }
+    let bits = locations.map { RCConstants.pixelThreshold.contains(Int(data[Int($0.x), Int($0.y)])) ? RCBit.one : RCBit.zero }
     return bits
   }
   
@@ -75,13 +75,13 @@ extension RCImageDecoder {
   private func scanControlPoint(for data: PixelContainer, region: (x: Int, y: Int), side: Side) throws -> CGPoint {
     
     func scan(region: (x: Int, y: Int, size: Int), data: PixelContainer, coordinate: (Int) -> (x: Int, y: Int), comparison: (PixelPattern, (x: Int, y: Int)) -> Bool) -> [PixelPattern] {
-      var lastPattern = PixelPattern(bit: data[region.x, region.y] > RCConstants.pixelThreshold ? RCBit.zero : RCBit.one, x: region.x, y: region.y, count: 0)
+      var lastPattern = PixelPattern(bit: RCConstants.pixelThreshold.contains(Int(data[region.x, region.y])) ? RCBit.one : RCBit.zero, x: region.x, y: region.y, count: 0)
       var pixelPatterns = [lastPattern]
       var count = 0
       let maxSize = region.size * region.size
       while count < maxSize {
         let coordinate = coordinate(count)
-        let bit = data[coordinate.x, coordinate.y] > RCConstants.pixelThreshold ? RCBit.zero : RCBit.one
+        let bit = RCConstants.pixelThreshold.contains(Int(data[coordinate.x, coordinate.y])) ? RCBit.one : RCBit.zero
         if comparison(lastPattern, coordinate), lastPattern.bit == bit {
           lastPattern.count += 1
           pixelPatterns[pixelPatterns.count - 1] = lastPattern
