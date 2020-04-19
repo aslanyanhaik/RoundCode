@@ -28,5 +28,5 @@ struct RCConstants {
   static let dotSizeScale: CGFloat = 0.08
   static let dotPatterns: [CGFloat] = [6, 4, 2]
   static let dotPointRange = (Float(1.3)...Float(2.5))
-  static let pixelThreshold = 180
+  static let pixelThreshold = (70...180)
 }
