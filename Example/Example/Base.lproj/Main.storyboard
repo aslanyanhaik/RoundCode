@@ -84,11 +84,18 @@
                         <viewLayoutGuide key="safeArea" id="aXm-cj-1eD"/>
                     </view>
                     <navigationItem key="navigationItem" id="XgG-ZM-i9d">
-                        <barButtonItem key="leftBarButtonItem" title="Share" id="so2-d3-VCF">
-                            <connections>
-                                <action selector="share:" destination="0zP-ee-W0J" id="uNU-bV-PaS"/>
-                            </connections>
-                        </barButtonItem>
+                        <leftBarButtonItems>
+                            <barButtonItem title="Share" id="so2-d3-VCF">
+                                <connections>
+                                    <action selector="share:" destination="0zP-ee-W0J" id="uNU-bV-PaS"/>
+                                </connections>
+                            </barButtonItem>
+                            <barButtonItem title="Config" id="33c-Ng-bhx">
+                                <connections>
+                                    <action selector="changeConfig:" destination="0zP-ee-W0J" id="izA-qU-8it"/>
+                                </connections>
+                            </barButtonItem>
+                        </leftBarButtonItems>
                         <rightBarButtonItems>
                             <barButtonItem title="Camera" id="Ckh-RB-Kad">
                                 <connections>

@@ -22,8 +22,8 @@
 	<true/>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>To scan roundcodes</string>
-  <key>NSPhotoLibraryAddUsageDescription</key>
-  <string>To save RoundCode images</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>To save RoundCode images</string>
 	<key>NSCameraUsageDescription</key>
 	<string>To scan roundcodes</string>
 	<key>UIApplicationSceneManifest</key>
@@ -64,5 +64,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
 </dict>
 </plist>

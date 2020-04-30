@@ -36,6 +36,33 @@ class ViewController: UIViewController {
 
 extension ViewController {
   
+  @IBAction func changeConfig(_ sender: Any) {
+    textField.text = ""
+    image.message = ""
+    imageView.image = try? coder.encode(image)
+    let vc = UIAlertController(title: "Select Configuration", message: nil, preferredStyle: .actionSheet)
+    let uuidAction = UIAlertAction(title: "UUID", style: .default) { _ in
+      self.coder = RCCoder(configuration: .uuidConfiguration)
+    }
+    let numericAction = UIAlertAction(title: "Numeric", style: .default) { _ in
+      self.coder = RCCoder(configuration: .numericConfiguration)
+    }
+    let shortAction = UIAlertAction(title: "Short", style: .default) { _ in
+      self.coder = RCCoder(configuration: .shortConfiguration)
+    }
+    let defaultAction = UIAlertAction(title: "Default", style: .default) { _ in
+      self.coder = RCCoder(configuration: .defaultConfiguration)
+    }
+    let cancelAction = UIAlertAction(title: "Cancel", style: .cancel)
+    vc.addAction(uuidAction)
+    vc.addAction(numericAction)
+    vc.addAction(shortAction)
+    vc.addAction(defaultAction)
+    vc.addAction(cancelAction)
+    present(vc, animated: true)
+  }
+  
+  
   @IBAction func scanImage(_ sender: Any) {
     isScanningFromLibrary = true
     let vc = UIImagePickerController()
@@ -48,6 +75,7 @@ extension ViewController {
   
   @IBAction func scan(_ sender: Any) {
     let vc = RCCameraViewController()
+    vc.coder = coder
     vc.delegate = self
     present(vc, animated: true)
   }
