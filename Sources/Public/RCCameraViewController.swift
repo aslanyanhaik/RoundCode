@@ -23,7 +23,7 @@
 import UIKit
 import AVFoundation
 
-public final class RCCameraViewController: UIViewController, UIImagePickerControllerDelegate {
+public final class RCCameraViewController: UIViewController {
   
   //MARK: Public properties
   public weak var delegate: RCCameraViewControllerDelegate?
