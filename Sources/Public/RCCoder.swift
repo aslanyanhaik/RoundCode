@@ -54,15 +54,15 @@ public extension RCCoder {
     configuration.validate(text)
   }
   
-//  func validateForBlackBackground(colors: [UIColor]) -> Bool {
-//    colors.allSatisfy { color in
-//      var white: CGFloat = 0
-//      var alpha: CGFloat = 0
-//      guard color.getWhite(&white, alpha: &alpha) else { return false }
-//      guard alpha == 1.0 else { return false }
-//      return RCConstants.pixelThreshold.contains(Int(white * 255))
-//    }
-//  }
+  func validateForBlackBackground(colors: [UIColor]) -> Bool {
+    colors.allSatisfy { color in
+      var white: CGFloat = 0
+      var alpha: CGFloat = 0
+      guard color.getWhite(&white, alpha: &alpha) else { return false }
+      guard alpha == 1.0 else { return false }
+      return RCConstants.pixelThreshold.contains(UInt8(white * 255))
+    }
+  }
 }
 
 extension RCCoder {
