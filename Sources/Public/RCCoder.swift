@@ -44,7 +44,6 @@ public extension RCCoder {
   func decode(_ image: UIImage) throws -> String {
     guard image.size.width == image.size.height else { throw RCError.wrongImageSize }
     imageDecoder.size = image.cgImage!.height
-    imageDecoder.padding = 0
     imageDecoder.bytesPerRow = image.cgImage!.height
     let bits = try imageDecoder.decode(image)
     let message = try bitCoder.decode(bits)
@@ -55,15 +54,15 @@ public extension RCCoder {
     configuration.validate(text)
   }
   
-  func validateForBlackBackground(colors: [UIColor]) -> Bool {
-    colors.allSatisfy { color in
-      var white: CGFloat = 0
-      var alpha: CGFloat = 0
-      guard color.getWhite(&white, alpha: &alpha) else { return false }
-      guard alpha == 1.0 else { return false }
-      return RCConstants.pixelThreshold.contains(Int(white * 255))
-    }
-  }
+//  func validateForBlackBackground(colors: [UIColor]) -> Bool {
+//    colors.allSatisfy { color in
+//      var white: CGFloat = 0
+//      var alpha: CGFloat = 0
+//      guard color.getWhite(&white, alpha: &alpha) else { return false }
+//      guard alpha == 1.0 else { return false }
+//      return RCConstants.pixelThreshold.contains(Int(white * 255))
+//    }
+//  }
 }
 
 extension RCCoder {

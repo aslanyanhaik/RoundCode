@@ -27,37 +27,17 @@ struct RCImageDecoder {
   internal let configuration: RCCoderConfiguration
   internal var size = 720
   internal var bytesPerRow = 720
-  internal var padding = 0
-  private var sectionSize: Int {
-    self.size / 5
-  }
 }
 
 extension RCImageDecoder {
   func process(pointer: UnsafeMutablePointer<UInt8>) throws -> [RCBit] {
     let bufferData = UnsafeMutableBufferPointer<UInt8>(start: pointer, count: size * bytesPerRow)
     let data = PixelContainer(rows: bytesPerRow, items: bufferData)
-    var points = [CGPoint]()
-    for side in Side.allCases {
-      switch side {
-        case .left:
-          let point = try scanControlPoint(for: data, region: (padding, (size - sectionSize) / 2), side: side)
-          points.append(point)
-        case .top:
-          let point = try scanControlPoint(for: data, region: ((size - sectionSize) / 2, padding), side: side)
-          points.append(point)
-        case .right:
-          let point = try scanControlPoint(for: data, region: (size - sectionSize - padding, (size - sectionSize) / 2), side: side)
-          points.append(point)
-        case .bottom:
-          let point = try scanControlPoint(for: data, region: ((size - sectionSize) / 2, size - sectionSize - padding), side: side)
-          points.append(point)
-      }
-    }
+    let points = try scanControlPoints(for: data)
     let transform = calculateTransform(from: points)
     let mapper = RCPointMapper(transform: transform, size: size)
     let locations = mapper.map(points: calculateBitLocations())
-    let bits = locations.map { RCConstants.pixelThreshold.contains(Int(data[Int($0.x), Int($0.y)])) ? RCBit.one : RCBit.zero }
+    let bits = locations.map { RCConstants.pixelThreshold.contains(data[Int($0.x), Int($0.y)]) ? RCBit.one : RCBit.zero }
     return bits
   }
   
@@ -72,47 +52,67 @@ extension RCImageDecoder {
 }
 
 extension RCImageDecoder {
-  private func scanControlPoint(for data: PixelContainer, region: (x: Int, y: Int), side: Side) throws -> CGPoint {
-    
-    func scan(region: (x: Int, y: Int, size: Int), data: PixelContainer, coordinate: (Int) -> (x: Int, y: Int), comparison: (PixelPattern, (x: Int, y: Int)) -> Bool) -> [PixelPattern] {
-      var lastPattern = PixelPattern(bit: RCConstants.pixelThreshold.contains(Int(data[region.x, region.y])) ? RCBit.one : RCBit.zero, x: region.x, y: region.y, count: 0)
-      var pixelPatterns = [lastPattern]
-      var count = 0
-      let maxSize = region.size * region.size
-      while count < maxSize {
-        let coordinate = coordinate(count)
-        let bit = RCConstants.pixelThreshold.contains(Int(data[coordinate.x, coordinate.y])) ? RCBit.one : RCBit.zero
-        if comparison(lastPattern, coordinate), lastPattern.bit == bit {
-          lastPattern.count += 1
-          pixelPatterns[pixelPatterns.count - 1] = lastPattern
-        } else {
-          lastPattern = PixelPattern(bit: bit, x: coordinate.x, y: coordinate.y, count: 1)
-          pixelPatterns.append(lastPattern)
-        }
-        count += 1
+  private func scanControlPoints(for data: PixelContainer) throws -> [CGPoint] {
+    var horizontalPatterns = [PixelPattern]()
+    var verticalPatterns = [PixelPattern]()
+    var points = [CGPoint]()
+    for side in Side.allCases {
+      switch side {
+        case .left:
+          horizontalPatterns = scanPixelPattern(for: .horizontal, data: data)
+          points.append(try controlPoint(for: horizontalPatterns, side: side))
+        case .right:
+          points.append(try controlPoint(for: horizontalPatterns, side: side))
+        case .top:
+          verticalPatterns = scanPixelPattern(for: .vertical, data: data)
+          points.append(try controlPoint(for: verticalPatterns, side: side))
+        case .bottom:
+          points.append(try controlPoint(for: verticalPatterns, side: side))
       }
-      return pixelPatterns
     }
-    
-    let pixelPatterns: [PixelPattern]
-    switch side {
-      case .left, .right:
-        pixelPatterns = scan(region: (region.x, region.y, sectionSize), data: data, coordinate: { count in
-          let x = count % sectionSize + region.x
-          let y = count / sectionSize + region.y
-          return (x, y)
-        }, comparison: { (pattern, coordinate) in
-          return pattern.y == coordinate.y
-        })
-      case .top, .bottom:
-        pixelPatterns = scan(region: (region.x, region.y, sectionSize), data: data, coordinate: { count in
-          let x = count / sectionSize + region.x
-          let y = count % sectionSize + region.y
-          return (x, y)
-        }, comparison: { (pattern, coordinate) in
-          return pattern.x == coordinate.x
-        })
+    return points
+  }
+
+  
+  private func scanPixelPattern(for mode: ScanMode, data: PixelContainer) -> [PixelPattern] {
+    var lastPattern = PixelPattern.init(bit: RCConstants.pixelThreshold.contains((data[0, 0])) ? RCBit.one : RCBit.zero, x: 0, y: 0, count: 0)
+    var pixelPatterns = [lastPattern]
+    var count = 0
+    let maxSize = size * size
+    switch mode {
+      case .horizontal:
+        while count < maxSize {
+          let x = count % size
+          let y = count / size
+          let bit = RCConstants.pixelThreshold.contains(data[x, y]) ? RCBit.one : RCBit.zero
+          if lastPattern.y == y, lastPattern.bit == bit {
+            lastPattern.count += 1
+            pixelPatterns[pixelPatterns.count - 1] = lastPattern
+          } else {
+            lastPattern = PixelPattern(bit: bit, x: x, y: y, count: 1)
+            pixelPatterns.append(lastPattern)
+          }
+          count += 1
+      }
+      case .vertical:
+        while count < maxSize {
+          let x = count / size
+          let y = count % size
+          let bit = RCConstants.pixelThreshold.contains(data[x, y]) ? RCBit.one : RCBit.zero
+          if lastPattern.x == x, lastPattern.bit == bit {
+            lastPattern.count += 1
+            pixelPatterns[pixelPatterns.count - 1] = lastPattern
+          } else {
+            lastPattern = PixelPattern(bit: bit, x: x, y: y, count: 1)
+            pixelPatterns.append(lastPattern)
+          }
+          count += 1
+      }
     }
+    return pixelPatterns
+  }
+  
+  private func controlPoint(for pixelPatterns: [PixelPattern], side: Side) throws -> CGPoint {
     let controlPoints = try pixelPatterns.withUnsafeBufferPointer { (pixelPatternsBuffer) -> [CGPoint] in
       var points = [CGPoint]()
       guard pixelPatternsBuffer.count >= 5 else { throw RCError.decoding }
@@ -164,7 +164,7 @@ extension RCImageDecoder {
       }
     }.first!
   }
-  
+    
   private func calculateTransform(from points: [CGPoint]) -> CATransform3D {
     let perspective = RCTransformation(points)
     let middleRect = CGRect(origin: .zero, size: CGSize(width: CGFloat(size), height: CGFloat(size)))
@@ -213,6 +213,11 @@ extension RCImageDecoder {
     case top
     case bottom
     case right
+  }
+  
+  enum ScanMode {
+    case horizontal
+    case vertical
   }
   
   final class PixelContainer {
