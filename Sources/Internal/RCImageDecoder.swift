@@ -27,6 +27,7 @@ struct RCImageDecoder {
   internal let configuration: RCCoderConfiguration
   internal var size = 720
   internal var bytesPerRow = 720
+  internal var pixelThreshold = RCConstants.lightBackgroundRange
 }
 
 extension RCImageDecoder {
@@ -37,7 +38,7 @@ extension RCImageDecoder {
     let transform = calculateTransform(from: points)
     let mapper = RCPointMapper(transform: transform, size: size)
     let locations = mapper.map(points: calculateBitLocations())
-    let bits = locations.map { RCConstants.pixelThreshold.contains(data[Int($0.x), Int($0.y)]) ? RCBit.one : RCBit.zero }
+    let bits = locations.map { pixelThreshold.contains(data[Int($0.x), Int($0.y)]) ? RCBit.one : RCBit.zero }
     return bits
   }
   
@@ -75,7 +76,7 @@ extension RCImageDecoder {
 
   
   private func scanPixelPattern(for mode: ScanMode, data: PixelContainer) -> [PixelPattern] {
-    var lastPattern = PixelPattern.init(bit: RCConstants.pixelThreshold.contains((data[0, 0])) ? RCBit.one : RCBit.zero, x: 0, y: 0, count: 0)
+    var lastPattern = PixelPattern.init(bit: pixelThreshold.contains((data[0, 0])) ? RCBit.one : RCBit.zero, x: 0, y: 0, count: 0)
     var pixelPatterns = [lastPattern]
     var count = 0
     let maxSize = size * size
@@ -84,7 +85,7 @@ extension RCImageDecoder {
         while count < maxSize {
           let x = count % size
           let y = count / size
-          let bit = RCConstants.pixelThreshold.contains(data[x, y]) ? RCBit.one : RCBit.zero
+          let bit = pixelThreshold.contains(data[x, y]) ? RCBit.one : RCBit.zero
           if lastPattern.y == y, lastPattern.bit == bit {
             lastPattern.count += 1
             pixelPatterns[pixelPatterns.count - 1] = lastPattern
@@ -98,7 +99,7 @@ extension RCImageDecoder {
         while count < maxSize {
           let x = count / size
           let y = count % size
-          let bit = RCConstants.pixelThreshold.contains(data[x, y]) ? RCBit.one : RCBit.zero
+          let bit = pixelThreshold.contains(data[x, y]) ? RCBit.one : RCBit.zero
           if lastPattern.x == x, lastPattern.bit == bit {
             lastPattern.count += 1
             pixelPatterns[pixelPatterns.count - 1] = lastPattern
