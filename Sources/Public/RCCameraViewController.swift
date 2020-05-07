@@ -160,7 +160,7 @@ extension RCCameraViewController {
       input.device.activeVideoMaxFrameDuration = CMTimeMake(value: 1, timescale: 30)
       captureSession.addInput(input)
       let videoOutput = AVCaptureVideoDataOutput()
-      videoOutput.setSampleBufferDelegate(self, queue: .main)
+      videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue.global(qos: .userInteractive))
       videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: NSNumber(value: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)]
       captureSession.addOutput(videoOutput)
     } catch {
@@ -197,8 +197,10 @@ extension RCCameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     coder.imageDecoder.bytesPerRow = bytesPerRow
     if let message = try? coder.decode(buffer: lumaCopy.assumingMemoryBound(to: UInt8.self)) {
       captureSession.stopRunning()
-      delegate?.cameraViewController(didFinishScanning: message)
-      dismiss(animated: true)
+      DispatchQueue.main.async {[weak self] in
+        self?.delegate?.cameraViewController(didFinishScanning: message)
+        self?.dismiss(animated: true)
+      }
     }
     lumaCopy.deallocate()
     CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)

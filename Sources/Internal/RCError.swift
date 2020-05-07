@@ -27,7 +27,6 @@ public enum RCError: String, LocalizedError {
   case longText
   case decoding
   case wrongImageSize
-  case wrongColors
 
   public var errorDescription: String? {
     switch self {
@@ -39,8 +38,6 @@ public enum RCError: String, LocalizedError {
         return "Error decoding"
       case .wrongImageSize:
         return "Error decoding. Image width and height must be a equal"
-      case .wrongColors:
-        return "The tint colors should be in a range of \(RCConstants.pixelThreshold) grayscale with 1.0 alpha"
     }
   }
 }
