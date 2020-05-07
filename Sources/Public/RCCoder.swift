@@ -25,6 +25,11 @@ import UIKit
 public final class RCCoder {
   
   public let configuration: RCCoderConfiguration
+  public var scanningMode = ScanningMode.lightBackground {
+    didSet {
+      imageDecoder.pixelThreshold = scanningMode == .lightBackground ? RCConstants.lightBackgroundRange : RCConstants.darkBackgroundRange
+    }
+  }
   internal lazy var imageDecoder = RCImageDecoder(configuration: self.configuration)
   internal lazy var imageEncoder = RCImageEncoder(configuration: self.configuration)
   internal lazy var bitCoder = RCBitCoder(configuration: self.configuration)
@@ -53,15 +58,12 @@ public extension RCCoder {
   func validate(_ text: String) -> Bool {
     configuration.validate(text)
   }
-  
-  func validateForBlackBackground(colors: [UIColor]) -> Bool {
-    colors.allSatisfy { color in
-      var white: CGFloat = 0
-      var alpha: CGFloat = 0
-      guard color.getWhite(&white, alpha: &alpha) else { return false }
-      guard alpha == 1.0 else { return false }
-      return RCConstants.pixelThreshold.contains(UInt8(white * 255))
-    }
+}
+
+public extension RCCoder {
+  enum ScanningMode {
+    case lightBackground
+    case darkBackground
   }
 }
 
@@ -73,3 +75,4 @@ extension RCCoder {
     return message
   }
 }
+
