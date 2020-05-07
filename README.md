@@ -88,7 +88,7 @@ let coder = RCCoder()
   }
 ```
 
-### Appearance
+## Appearance
 
 You can change the appearance like this
 
@@ -100,10 +100,14 @@ image.size = 300
 image.gradientType = .linear(angle: CGFloat.pi)
 image.tintColors = [.red, .black]
 ```
+If image is on dark background you should change scanning mode to `darkBackground`
 
-⚠️ When choosing colors or transparent background you should keep in mind that decoder will detect the code on light background with dark colors ⚠️
+```swift
+let coder = RCCoder()
+coder.scanningMode = .darkBackground
+```
 
-### Advanced
+## Advanced coding configuration
 
 You can provide custom coding configuration in order to encode long text by reducing number of characters
 
