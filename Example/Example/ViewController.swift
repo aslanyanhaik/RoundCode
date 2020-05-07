@@ -75,6 +75,7 @@ extension ViewController {
   
   @IBAction func scan(_ sender: Any) {
     let vc = RCCameraViewController()
+    coder.scanningMode  = .lightBackground
     vc.coder = coder
     vc.delegate = self
     present(vc, animated: true)
@@ -82,12 +83,10 @@ extension ViewController {
   
   @IBAction func share(_ sender: Any) {
     image.size = 1000
-    image.isTransparent = false
     image.contentInsets = UIEdgeInsets(top: 50, left: 50, bottom: 50, right: 50)
     let uiImage = try? coder.encode(image)
     image.size = 300
     image.contentInsets = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
-    image.isTransparent = true
     let vc = UIActivityViewController.init(activityItems: [uiImage!], applicationActivities: nil)
     present(vc, animated: true)
   }
