@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'RoundCode'
-  s.version          = '1.2.0'
+  s.version          = '1.3.0'
   s.summary          = 'Facebook messenger style custom barcode.'
   s.description      = <<-DESC
                      Encode and decode data into custom stylish barcode.
