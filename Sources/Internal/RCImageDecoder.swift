@@ -74,9 +74,8 @@ extension RCImageDecoder {
     return points
   }
 
-  
   private func scanPixelPattern(for mode: ScanMode, data: PixelContainer) -> [PixelPattern] {
-    var lastPattern = PixelPattern.init(bit: pixelThreshold.contains((data[0, 0])) ? RCBit.one : RCBit.zero, x: 0, y: 0, count: 0)
+    var lastPattern = PixelPattern(bit: pixelThreshold.contains((data[0, 0])) ? RCBit.one : RCBit.zero, x: 0, y: 0, count: 0)
     var pixelPatterns = [lastPattern]
     var count = 0
     let maxSize = size * size

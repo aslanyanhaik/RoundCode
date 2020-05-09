@@ -81,11 +81,11 @@ You can also decode a UIImage like this
 
 ```swift
 let coder = RCCoder()
-  do {
-    messageLabel.text = try coder.decode(UIImage(named: code)!)
-  } catch {
-    //handle errors
-  }
+do {
+  messageLabel.text = try coder.decode(UIImage(named: code)!)
+} catch {
+  //handle errors
+}
 ```
 
 ## Appearance
