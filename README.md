@@ -5,10 +5,8 @@
 [![Twitter: @aslanyanhaik](https://img.shields.io/badge/Contact-Twitter-blue.svg?style=flat)](https://twitter.com/aslanyanhaik)
 
 
-
-RoundCode is a Facebook messenger like custom QR code with lots of customization. 
-
-In addition to encoder the RoundCode also includes convenient camera scanner and decoder.
+RoundCode is custom circular QR code with lots of customization. 
+Similar to Facebook messenger and Apple's App Clip Codes the RoundCode includes convenient camera scanner and decoder.
 
 <h3 align="center">
 <img src="appearance.png" alt="Different styles of RoundCode for iOS"/>
